@@ -5,13 +5,12 @@ import kotlinx.coroutines.flow.StateFlow
 import moe.rukamori.archivetune.innertube.models.AccountChannel
 import moe.rukamori.archivetune.innertube.models.AccountInfo
 import moe.rukamori.archivetune.innertube.models.AlbumItem
-import moe.rukamori.archivetune.innertube.models.AlbumItem
 import moe.rukamori.archivetune.innertube.models.BrowseEndpoint
-import moe.rukamori.archivetune.innertube.models.CreatePlaylistResponse
-import moe.rukamori.archivetune.innertube.models.GetQueueResponse
-import moe.rukamori.archivetune.innertube.models.GetTranscriptResponse
 import moe.rukamori.archivetune.innertube.models.MediaInfo
-import moe.rukamori.archivetune.innertube.models.PlayerResponse
+import moe.rukamori.archivetune.innertube.models.response.CreatePlaylistResponse
+import moe.rukamori.archivetune.innertube.models.response.GetQueueResponse
+import moe.rukamori.archivetune.innertube.models.response.GetTranscriptResponse
+import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
 import moe.rukamori.archivetune.innertube.models.SearchSuggestions
 import moe.rukamori.archivetune.innertube.models.SongItem
 import moe.rukamori.archivetune.innertube.models.WatchEndpoint
