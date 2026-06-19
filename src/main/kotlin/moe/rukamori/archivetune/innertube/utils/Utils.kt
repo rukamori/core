@@ -13,6 +13,10 @@ import moe.rukamori.archivetune.innertube.pages.PlaylistContinuationPage
 import moe.rukamori.archivetune.innertube.pages.PlaylistPage
 import java.security.MessageDigest
 
+// Cap for LibraryPage.continued() (e.g. FEmusic_liked_playlists / generated mixes)
+// to prevent hundreds of sequential continuation requests on the home screen.
+private const val LIBRARY_COMPLETION_MAX_REQUESTS = 50
+
 @JvmName("completedLibrary")
 suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> =
     runCatching {
@@ -70,7 +74,7 @@ suspend fun Result<LibraryPage>.completed(): Result<LibraryPage> =
         var continuation = page.continuation
         val seenContinuations = mutableSetOf<String>()
         var requestCount = 0
-        val maxRequests = 500
+        val maxRequests = LIBRARY_COMPLETION_MAX_REQUESTS
         var consecutiveEmptyResponses = 0
 
         while (continuation != null && requestCount < maxRequests) {
