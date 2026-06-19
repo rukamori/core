@@ -7,11 +7,11 @@
 
 package moe.rukamori.archivetune.innertube.models.response
 
+import kotlinx.serialization.Serializable
 import moe.rukamori.archivetune.innertube.models.NavigationEndpoint
 import moe.rukamori.archivetune.innertube.models.PlaylistPanelRenderer
 import moe.rukamori.archivetune.innertube.models.Tabs
 import moe.rukamori.archivetune.innertube.models.YouTubeDataPage
-import kotlinx.serialization.Serializable
 
 @Serializable
 data class NextResponse(

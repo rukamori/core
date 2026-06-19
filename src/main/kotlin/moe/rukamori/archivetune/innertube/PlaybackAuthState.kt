@@ -31,17 +31,18 @@ data class PlaybackAuthState(
         get() = if (hasPlaybackLoginContext) dataSyncId else visitorData
 
     val fingerprint: String
-        get() = sha1(
-            listOf(
-                cookie.orEmpty(),
-                visitorData.orEmpty(),
-                dataSyncId.orEmpty(),
-                poToken.orEmpty(),
-                poTokenGvs.orEmpty(),
-                poTokenPlayer.orEmpty(),
-                webClientPoTokenEnabled.toString(),
-            ).joinToString(separator = "\u0000")
-        )
+        get() =
+            sha1(
+                listOf(
+                    cookie.orEmpty(),
+                    visitorData.orEmpty(),
+                    dataSyncId.orEmpty(),
+                    poToken.orEmpty(),
+                    poTokenGvs.orEmpty(),
+                    poTokenPlayer.orEmpty(),
+                    webClientPoTokenEnabled.toString(),
+                ).joinToString(separator = "\u0000"),
+            )
 
     fun normalized(): PlaybackAuthState =
         copy(

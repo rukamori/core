@@ -1,7 +1,9 @@
 package moe.rukamori.archivetune.innertube
 
 @JvmInline
-value class SearchFilter(val value: String) {
+value class SearchFilter(
+    val value: String,
+) {
     companion object {
         val FILTER_SONG = SearchFilter("EgWKAQIIAWoKEAkQBRAKEAMQBA%3D%3D")
         val FILTER_VIDEO = SearchFilter("EgWKAQIQAWoKEAkQChAFEAMQBA%3D%3D")

@@ -7,15 +7,15 @@
 
 package moe.rukamori.archivetune.innertube.models.body
 
-import moe.rukamori.archivetune.innertube.models.Context
 import kotlinx.serialization.Serializable
+import moe.rukamori.archivetune.innertube.models.Context
 
 @Serializable
 data class CreatePlaylistBody(
     val context: Context,
     val title: String,
     val videoIds: List<String>,
-    val privacyStatus: String = PrivacyStatus.PRIVATE
+    val privacyStatus: String = PrivacyStatus.PRIVATE,
 ) {
     object PrivacyStatus {
         const val PRIVATE = "PRIVATE"

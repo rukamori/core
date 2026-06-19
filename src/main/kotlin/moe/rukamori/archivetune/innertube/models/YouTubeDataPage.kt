@@ -7,7 +7,6 @@
 
 package moe.rukamori.archivetune.innertube.models
 
-
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

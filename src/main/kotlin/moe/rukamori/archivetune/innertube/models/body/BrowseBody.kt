@@ -7,14 +7,14 @@
 
 package moe.rukamori.archivetune.innertube.models.body
 
+import kotlinx.serialization.Serializable
 import moe.rukamori.archivetune.innertube.models.Context
 import moe.rukamori.archivetune.innertube.models.Continuation
-import kotlinx.serialization.Serializable
 
 @Serializable
 data class BrowseBody(
     val context: Context,
     val browseId: String?,
     val params: String?,
-    val continuation: String?
+    val continuation: String?,
 )

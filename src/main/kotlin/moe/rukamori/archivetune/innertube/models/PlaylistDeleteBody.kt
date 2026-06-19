@@ -7,11 +7,11 @@
 
 package moe.rukamori.archivetune.innertube.models.body
 
-import moe.rukamori.archivetune.innertube.models.Context
 import kotlinx.serialization.Serializable
+import moe.rukamori.archivetune.innertube.models.Context
 
 @Serializable
 data class PlaylistDeleteBody(
     val context: Context,
-    val playlistId: String
+    val playlistId: String,
 )

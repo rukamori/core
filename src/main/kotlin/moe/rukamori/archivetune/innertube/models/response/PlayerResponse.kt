@@ -7,10 +7,10 @@
 
 package moe.rukamori.archivetune.innertube.models.response
 
-import moe.rukamori.archivetune.innertube.models.ResponseContext
-import moe.rukamori.archivetune.innertube.models.Thumbnails
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import moe.rukamori.archivetune.innertube.models.ResponseContext
+import moe.rukamori.archivetune.innertube.models.Thumbnails
 
 /**
  * PlayerResponse with [moe.rukamori.archivetune.innertube.models.YouTubeClient.WEB_REMIX] client
@@ -101,11 +101,13 @@ data class PlayerResponse(
             @SerialName("baseUrl")
             val baseUrl: String?,
         )
+
         @Serializable
         data class VideostatsWatchtimeUrl(
             @SerialName("baseUrl")
             val baseUrl: String?,
         )
+
         @Serializable
         data class AtrUrl(
             @SerialName("baseUrl")

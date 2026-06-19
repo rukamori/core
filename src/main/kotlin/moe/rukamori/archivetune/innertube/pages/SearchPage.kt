@@ -54,6 +54,7 @@ object SearchPage {
                     endpoint = endpoint,
                 )
             }
+
             renderer.isArtist -> {
                 ArtistItem(
                     id = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
@@ -78,11 +79,13 @@ object SearchPage {
                             ?.watchPlaylistEndpoint,
                 )
             }
+
             renderer.isAlbum -> {
                 AlbumItem(
                     browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
                     playlistId =
-                        renderer.watchEndpoint()
+                        renderer
+                            .watchEndpoint()
                             ?.playlistId
                             ?: return null,
                     title = title,
@@ -92,11 +95,15 @@ object SearchPage {
                     explicit = renderer.isExplicit,
                 )
             }
+
             renderer.isPlaylist -> {
                 val playlistMetadata = renderer.metadataGroups(clean = false)
                 PlaylistItem(
                     id =
-                        renderer.navigationEndpoint?.browseEndpoint?.browseId?.removePrefix("VL")
+                        renderer.navigationEndpoint
+                            ?.browseEndpoint
+                            ?.browseId
+                            ?.removePrefix("VL")
                             ?: renderer.watchEndpoint()?.playlistId?.removePrefix("VL")
                             ?: return null,
                     title = title,
@@ -123,7 +130,10 @@ object SearchPage {
                             ?.watchPlaylistEndpoint,
                 )
             }
-            else -> null
+
+            else -> {
+                null
+            }
         }
     }
 }
@@ -149,7 +159,10 @@ private fun MusicResponsiveListItemRenderer.metadataGroups(clean: Boolean = true
         flexColumns
             .drop(1)
             .flatMap {
-                it.musicResponsiveListItemFlexColumnRenderer.text?.runs?.splitBySeparator().orEmpty()
+                it.musicResponsiveListItemFlexColumnRenderer.text
+                    ?.runs
+                    ?.splitBySeparator()
+                    .orEmpty()
             }
     return if (clean) groups.clean() else groups
 }
@@ -171,8 +184,7 @@ private fun List<Run>?.toArtists(): List<Artist> =
                 name = it.text,
                 id = it.navigationEndpoint?.browseEndpoint?.browseId,
             )
-        }
-        .orEmpty()
+        }.orEmpty()
 
 private fun List<List<Run>>.duration(): Int? {
     for (group in asReversed()) {
@@ -203,8 +215,7 @@ private fun List<List<Run>>.viewCountText(): String? =
         }
     }
 
-private fun List<List<Run>>.viewCount(): Long? =
-    viewCountText()?.let(::parseViewCount)
+private fun List<List<Run>>.viewCount(): Long? = viewCountText()?.let(::parseViewCount)
 
 private fun parseViewCount(text: String): Long? {
     val match = ViewCountRegex.find(text) ?: return null

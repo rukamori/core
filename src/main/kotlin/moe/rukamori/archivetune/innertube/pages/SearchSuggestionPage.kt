@@ -68,6 +68,7 @@ object SearchSuggestionPage {
                         } != null,
                 )
             }
+
             renderer.isArtist -> {
                 ArtistItem(
                     id = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
@@ -99,6 +100,7 @@ object SearchSuggestionPage {
                             ?.watchPlaylistEndpoint,
                 )
             }
+
             renderer.isAlbum -> {
                 val secondaryLine =
                     renderer.flexColumns
@@ -147,7 +149,10 @@ object SearchSuggestionPage {
                         } != null,
                 )
             }
-            else -> null
+
+            else -> {
+                null
+            }
         }
     }
 }

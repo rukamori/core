@@ -61,7 +61,7 @@ data class RelatedPage(
 
         fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): YTItem? {
             return when {
-                renderer.isAlbum ->
+                renderer.isAlbum -> {
                     AlbumItem(
                         browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                         playlistId =
@@ -76,12 +76,22 @@ data class RelatedPage(
                             renderer.title.runs
                                 ?.firstOrNull()
                                 ?.text ?: return null,
-                        artists = listOfNotNull(Artist(
-                                name = "",
-                                id = renderer.menu?.menuRenderer?.items?.find {
-                                    it.menuNavigationItemRenderer?.icon?.iconType == "ARTIST"
-                                }?.menuNavigationItemRenderer?.navigationEndpoint?.browseEndpoint?.browseId,
-                            )),
+                        artists =
+                            listOfNotNull(
+                                Artist(
+                                    name = "",
+                                    id =
+                                        renderer.menu
+                                            ?.menuRenderer
+                                            ?.items
+                                            ?.find {
+                                                it.menuNavigationItemRenderer?.icon?.iconType == "ARTIST"
+                                            }?.menuNavigationItemRenderer
+                                            ?.navigationEndpoint
+                                            ?.browseEndpoint
+                                            ?.browseId,
+                                ),
+                            ),
                         year =
                             renderer.subtitle
                                 ?.runs
@@ -94,7 +104,9 @@ data class RelatedPage(
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                             } != null,
                     )
-                renderer.isPlaylist ->
+                }
+
+                renderer.isPlaylist -> {
                     PlaylistItem(
                         id =
                             renderer.navigationEndpoint.browseEndpoint
@@ -105,7 +117,11 @@ data class RelatedPage(
                                 ?.firstOrNull()
                                 ?.text ?: return null,
                         author = null,
-                        songCountText = renderer.subtitle?.runs?.lastOrNull()?.text,
+                        songCountText =
+                            renderer.subtitle
+                                ?.runs
+                                ?.lastOrNull()
+                                ?.text,
                         thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
                         playEndpoint =
                             renderer.thumbnailOverlay
@@ -131,6 +147,8 @@ data class RelatedPage(
                                 ?.navigationEndpoint
                                 ?.watchPlaylistEndpoint,
                     )
+                }
+
                 renderer.isArtist -> {
                     ArtistItem(
                         id = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
@@ -157,7 +175,10 @@ data class RelatedPage(
                                 ?.watchPlaylistEndpoint ?: return null,
                     )
                 }
-                else -> null
+
+                else -> {
+                    null
+                }
             }
         }
     }

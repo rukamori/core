@@ -12,11 +12,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TwoColumnBrowseResultsRenderer(
     val secondaryContents: SecondaryContents?,
-    val tabs: List<Tabs.Tab>?
+    val tabs: List<Tabs.Tab>?,
 ) {
     @Serializable
     data class SecondaryContents(
-        val sectionListRenderer: SectionListRenderer?
+        val sectionListRenderer: SectionListRenderer?,
     )
 
     @Serializable
@@ -27,7 +27,7 @@ data class TwoColumnBrowseResultsRenderer(
         @Serializable
         data class Content(
             val musicPlaylistShelfRenderer: MusicPlaylistShelfRenderer?,
-            val musicShelfRenderer: MusicShelfRenderer?
+            val musicShelfRenderer: MusicShelfRenderer?,
         )
     }
 }

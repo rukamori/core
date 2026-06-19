@@ -47,9 +47,7 @@ private fun MusicResponsiveListItemRenderer.belongsToPlaylist(playlistId: String
     return endpoint?.playlistSetVideoId?.isNotBlank() == true || endpoint?.index != null
 }
 
-internal fun MusicResponsiveListItemRenderer.toSongItem(
-    albumColumnIndex: Int? = 2,
-): SongItem? {
+internal fun MusicResponsiveListItemRenderer.toSongItem(albumColumnIndex: Int? = 2): SongItem? {
     val endpoint = watchEndpoint()
     val videoId = playlistItemData?.videoId ?: endpoint?.videoId ?: return null
     val metadataGroups = metadataGroups()
@@ -57,13 +55,14 @@ internal fun MusicResponsiveListItemRenderer.toSongItem(
         id = videoId,
         title = titleText ?: return null,
         artists = artistsFromColumn(1).ifEmpty { metadataGroups.firstOrNull().toArtists() },
-        album = albumColumnIndex?.let(::albumFromColumn)
-            ?: metadataGroups.drop(1).firstNotNullOfOrNull { it.toAlbum() },
+        album =
+            albumColumnIndex?.let(::albumFromColumn)
+                ?: metadataGroups.drop(1).firstNotNullOfOrNull { it.toAlbum() },
         duration = fixedDuration ?: metadataGroups.duration(),
         thumbnail = thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
         explicit = isExplicit,
         endpoint = endpoint,
-        setVideoId = playlistItemData?.playlistSetVideoId ?: endpoint?.playlistSetVideoId
+        setVideoId = playlistItemData?.playlistSetVideoId ?: endpoint?.playlistSetVideoId,
     )
 }
 
@@ -107,9 +106,11 @@ private fun MusicResponsiveListItemRenderer.metadataGroups(): List<List<Run>> =
     flexColumns
         .drop(1)
         .flatMap {
-            it.musicResponsiveListItemFlexColumnRenderer.text?.runs?.splitBySeparator().orEmpty()
-        }
-        .clean()
+            it.musicResponsiveListItemFlexColumnRenderer.text
+                ?.runs
+                ?.splitBySeparator()
+                .orEmpty()
+        }.clean()
 
 private fun MusicResponsiveListItemRenderer.artistsFromColumn(index: Int): List<Artist> =
     flexColumns
@@ -139,11 +140,10 @@ private fun List<Run>?.toArtists(): List<Artist> =
                 ?.let { name ->
                     Artist(
                         name = name,
-                        id = run.navigationEndpoint?.browseEndpoint?.browseId
+                        id = run.navigationEndpoint?.browseEndpoint?.browseId,
                     )
                 }
-        }
-        .orEmpty()
+        }.orEmpty()
 
 private fun List<Run>.toAlbum(): Album? =
     firstNotNullOfOrNull { run ->
@@ -153,7 +153,7 @@ private fun List<Run>.toAlbum(): Album? =
             ?.let { name ->
                 Album(
                     name = name,
-                    id = browseId
+                    id = browseId,
                 )
             }
     }

@@ -7,11 +7,11 @@
 
 package moe.rukamori.archivetune.innertube
 
+import io.ktor.http.URLBuilder
+import io.ktor.http.parseQueryString
 import moe.rukamori.archivetune.innertube.PlaybackAuthState
 import moe.rukamori.archivetune.innertube.models.YouTubeClient
 import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
-import io.ktor.http.URLBuilder
-import io.ktor.http.parseQueryString
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -35,16 +35,19 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
-private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
-
-    private val client = OkHttpClient.Builder()
-        .proxy(proxy ?: Proxy.NO_PROXY)
-        .retryOnConnectionFailure(true)
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .callTimeout(45, TimeUnit.SECONDS)
-        .build()
+private class NewPipeDownloaderImpl(
+    proxy: Proxy?,
+) : Downloader() {
+    private val client =
+        OkHttpClient
+            .Builder()
+            .proxy(proxy ?: Proxy.NO_PROXY)
+            .retryOnConnectionFailure(true)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .callTimeout(45, TimeUnit.SECONDS)
+            .build()
 
     @Throws(IOException::class, ReCaptchaException::class)
     override fun execute(request: Request): Response {
@@ -53,9 +56,11 @@ private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
         val headers = request.headers()
         val dataToSend = request.dataToSend()
 
-        val requestBuilder = okhttp3.Request.Builder()
-            .method(httpMethod, dataToSend?.toRequestBody())
-            .url(url)
+        val requestBuilder =
+            okhttp3.Request
+                .Builder()
+                .method(httpMethod, dataToSend?.toRequestBody())
+                .url(url)
 
         var hasUserAgent = false
         headers.forEach { (headerName, headerValueList) ->
@@ -89,13 +94,12 @@ private class NewPipeDownloaderImpl(proxy: Proxy?) : Downloader() {
         val latestUrl = response.request.url.toString()
         return Response(response.code, response.message, response.headers.toMultimap(), responseBodyToReturn, latestUrl)
     }
-
 }
 
 object NewPipeUtils {
-
     private val externalProbeClient: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        OkHttpClient
+            .Builder()
             .proxy(YouTube.streamOkHttpProxy)
             .retryOnConnectionFailure(true)
             .connectTimeout(10, TimeUnit.SECONDS)
@@ -158,9 +162,10 @@ object NewPipeUtils {
             )
         }
 
-    fun getSignatureTimestamp(videoId: String): Result<Int> = runCatching {
-        YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId)
-    }
+    fun getSignatureTimestamp(videoId: String): Result<Int> =
+        runCatching {
+            YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId)
+        }
 
     fun getStreamUrl(
         format: PlayerResponse.StreamingData.Format,
@@ -177,7 +182,7 @@ object NewPipeUtils {
                             retryWithBackoff(
                                 maxAttempts = 3,
                                 initialDelayMs = 250L,
-                                maxDelayMs = 2_000L
+                                maxDelayMs = 2_000L,
                             ) {
                                 YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, directUrl)
                             }
@@ -193,34 +198,39 @@ object NewPipeUtils {
                 )
             }
 
-            val url = run {
-                val cipherString = format.signatureCipher ?: format.cipher
-                if (cipherString == null) throw ParsingException("Could not find format url")
+            val url =
+                run {
+                    val cipherString = format.signatureCipher ?: format.cipher
+                    if (cipherString == null) throw ParsingException("Could not find format url")
 
-                val params = parseQueryString(cipherString)
-                val obfuscatedSignature = params["s"]
-                    ?: throw ParsingException("Could not parse cipher signature")
-                val signatureParam = params["sp"]
-                    ?: throw ParsingException("Could not parse cipher signature parameter")
-                val url = params["url"]?.let { URLBuilder(it) }
-                    ?: throw ParsingException("Could not parse cipher url")
-                url.parameters[signatureParam] =
-                    YoutubeJavaScriptPlayerManager.deobfuscateSignature(
-                        videoId,
-                        obfuscatedSignature
-                    )
-                url.toString()
-            }
-
-            val resolvedUrl = runCatching {
-                retryWithBackoff(
-                    maxAttempts = 3,
-                    initialDelayMs = 250L,
-                    maxDelayMs = 2_000L
-                ) {
-                    YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, url)
+                    val params = parseQueryString(cipherString)
+                    val obfuscatedSignature =
+                        params["s"]
+                            ?: throw ParsingException("Could not parse cipher signature")
+                    val signatureParam =
+                        params["sp"]
+                            ?: throw ParsingException("Could not parse cipher signature parameter")
+                    val url =
+                        params["url"]?.let { URLBuilder(it) }
+                            ?: throw ParsingException("Could not parse cipher url")
+                    url.parameters[signatureParam] =
+                        YoutubeJavaScriptPlayerManager.deobfuscateSignature(
+                            videoId,
+                            obfuscatedSignature,
+                        )
+                    url.toString()
                 }
-            }.getOrElse { url }
+
+            val resolvedUrl =
+                runCatching {
+                    retryWithBackoff(
+                        maxAttempts = 3,
+                        initialDelayMs = 250L,
+                        maxDelayMs = 2_000L,
+                    ) {
+                        YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, url)
+                    }
+                }.getOrElse { url }
 
             YouTube.appendGvsPoToken(
                 url = resolvedUrl,
@@ -236,7 +246,8 @@ object NewPipeUtils {
     ): Result<ExternalAudioStream> =
         runCatching {
             val candidates =
-                query.searchQueries()
+                query
+                    .searchQueries()
                     .asSequence()
                     .flatMap { searchQuery ->
                         runCatching {
@@ -248,16 +259,14 @@ object NewPipeUtils {
                                 .asSequence()
                                 .filterIsInstance<StreamInfoItem>()
                         }.getOrElse { emptySequence() }
-                    }
-                    .distinctBy { it.getUrl() }
+                    }.distinctBy { it.getUrl() }
                     .filter { candidate ->
                         query.acceptsCandidate(
                             name = candidate.getName(),
                             uploaderName = candidate.getUploaderName(),
                             durationSeconds = candidate.getDuration(),
                         )
-                    }
-                    .sortedByDescending { candidate -> query.score(candidate) }
+                    }.sortedByDescending { candidate -> query.score(candidate) }
                     .take(MAX_EXTERNAL_SEARCH_CANDIDATES)
                     .toList()
 
@@ -274,7 +283,8 @@ object NewPipeUtils {
                 }
                 val audioStream = selectExternalAudioStream(streamInfo.getAudioStreams()) ?: continue
                 val content =
-                    audioStream.getContent()
+                    audioStream
+                        .getContent()
                         .takeIf { audioStream.isUrl() && it.startsWith("http", ignoreCase = true) }
                         ?: continue
                 val probe =
@@ -313,13 +323,11 @@ object NewPipeUtils {
                     stream.getDeliveryMethod() == DeliveryMethod.PROGRESSIVE_HTTP &&
                     stream.getContent().startsWith("http", ignoreCase = true) &&
                     !stream.getContent().isManifestLikeUrl()
-            }
-            .sortedWith(
+            }.sortedWith(
                 compareByDescending<AudioStream> { it.losslessRank() }
                     .thenByDescending { it.getAverageBitrate().takeUnless { bitrate -> bitrate == AudioStream.UNKNOWN_BITRATE } ?: 0 }
-                    .thenByDescending { it.getBitrate().takeUnless { bitrate -> bitrate == AudioStream.UNKNOWN_BITRATE } ?: 0 }
-            )
-            .firstOrNull()
+                    .thenByDescending { it.getBitrate().takeUnless { bitrate -> bitrate == AudioStream.UNKNOWN_BITRATE } ?: 0 },
+            ).firstOrNull()
 
     private data class ExternalProbeResult(
         val mimeType: String?,
@@ -333,12 +341,14 @@ object NewPipeUtils {
     ): ExternalProbeResult? {
         if (url.isManifestLikeUrl()) return null
         return runCatching {
-            val request = okhttp3.Request.Builder()
-                .url(url)
-                .get()
-                .header("Range", "bytes=0-31")
-                .header("User-Agent", YouTubeClient.USER_AGENT_WEB)
-                .build()
+            val request =
+                okhttp3.Request
+                    .Builder()
+                    .url(url)
+                    .get()
+                    .header("Range", "bytes=0-31")
+                    .header("User-Agent", YouTubeClient.USER_AGENT_WEB)
+                    .build()
 
             externalProbeClient.newCall(request).execute().use { response ->
                 if (response.code !in 200..399) return@use null
@@ -347,7 +357,12 @@ object NewPipeUtils {
 
                 val source = response.body.source()
                 source.request(EXTERNAL_PROBE_BYTES)
-                val bytes = source.buffer.clone().readByteArray().take(EXTERNAL_PROBE_BYTES.toInt()).toByteArray()
+                val bytes =
+                    source.buffer
+                        .clone()
+                        .readByteArray()
+                        .take(EXTERNAL_PROBE_BYTES.toInt())
+                        .toByteArray()
                 val estimatedBitrate =
                     response
                         .fullContentLength()
@@ -461,7 +476,9 @@ object NewPipeUtils {
                     value.contains("wav", ignoreCase = true) ||
                     value.contains("aiff", ignoreCase = true)
             } -> 3
+
             codecName.contains("opus", ignoreCase = true) -> 2
+
             else -> 1
         }
     }
@@ -475,15 +492,27 @@ object NewPipeUtils {
             combined.contains("flac", ignoreCase = true) ||
                 combined.contains("alac", ignoreCase = true) ||
                 combined.contains("wav", ignoreCase = true) ||
-                combined.contains("aiff", ignoreCase = true) -> 900_000
-            combined.contains("opus", ignoreCase = true) -> 128_000
+                combined.contains("aiff", ignoreCase = true) -> {
+                900_000
+            }
+
+            combined.contains("opus", ignoreCase = true) -> {
+                128_000
+            }
+
             combined.contains("aac", ignoreCase = true) ||
-                combined.contains("mp4a", ignoreCase = true) -> 256_000
+                combined.contains("mp4a", ignoreCase = true) -> {
+                256_000
+            }
+
             combined.contains("mpeg", ignoreCase = true) ||
-                combined.contains("mp3", ignoreCase = true) ->
+                combined.contains("mp3", ignoreCase = true) -> {
                 if (source == ExternalAudioService.BANDCAMP) 320_000 else 128_000
-            else ->
+            }
+
+            else -> {
                 if (source == ExternalAudioService.BANDCAMP) 320_000 else 128_000
+            }
         }
     }
 
@@ -554,7 +583,10 @@ object NewPipeUtils {
         return titleScore + (artistScore * 3) + durationScore
     }
 
-    private fun tokenOverlap(left: String, right: String): Int {
+    private fun tokenOverlap(
+        left: String,
+        right: String,
+    ): Int {
         val leftTokens = left.matchTokens()
         if (leftTokens.isEmpty()) return 0
         val rightTokens = right.matchTokens()
@@ -587,7 +619,7 @@ object NewPipeUtils {
         maxAttempts: Int,
         initialDelayMs: Long,
         maxDelayMs: Long,
-        block: () -> T
+        block: () -> T,
     ): T {
         var attempt = 0
         var delayMs = initialDelayMs
@@ -660,5 +692,4 @@ object NewPipeUtils {
             " edit",
             " version",
         )
-
 }

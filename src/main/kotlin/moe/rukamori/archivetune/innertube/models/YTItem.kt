@@ -32,16 +32,16 @@ data class Album(
 enum class AlbumReleaseType {
     ALBUM,
     SINGLE,
-    EP;
+    EP,
+    ;
 
     companion object {
-        fun fromLabel(label: String?): AlbumReleaseType {
-            return when (label?.trim()?.lowercase(Locale.ROOT)) {
+        fun fromLabel(label: String?): AlbumReleaseType =
+            when (label?.trim()?.lowercase(Locale.ROOT)) {
                 "single", "singles" -> SINGLE
                 "ep", "eps" -> EP
                 else -> ALBUM
             }
-        }
     }
 }
 
@@ -126,11 +126,18 @@ fun <T : YTItem> List<T>.filterVideo(enabled: Boolean = true) =
         filter {
             when (it) {
                 is SongItem -> {
-                    val musicVideoType = it.endpoint?.watchEndpointMusicSupportedConfigs?.watchEndpointMusicConfig?.musicVideoType
+                    val musicVideoType =
+                        it.endpoint
+                            ?.watchEndpointMusicSupportedConfigs
+                            ?.watchEndpointMusicConfig
+                            ?.musicVideoType
                     val isMusicVideo = musicVideoType == MUSIC_VIDEO_TYPE_OMV || musicVideoType == MUSIC_VIDEO_TYPE_UGC
                     !isMusicVideo
                 }
-                else -> true
+
+                else -> {
+                    true
+                }
             }
         }
     } else {

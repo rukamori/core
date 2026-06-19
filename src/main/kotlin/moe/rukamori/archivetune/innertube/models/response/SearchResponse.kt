@@ -7,11 +7,11 @@
 
 package moe.rukamori.archivetune.innertube.models.response
 
+import kotlinx.serialization.Serializable
 import moe.rukamori.archivetune.innertube.models.Continuation
 import moe.rukamori.archivetune.innertube.models.ContinuationItemRenderer
 import moe.rukamori.archivetune.innertube.models.MusicResponsiveListItemRenderer
 import moe.rukamori.archivetune.innertube.models.Tabs
-import kotlinx.serialization.Serializable
 
 @Serializable
 data class SearchResponse(

@@ -14,20 +14,22 @@ import moe.rukamori.archivetune.innertube.pages.PlaylistPage
 import java.security.MessageDigest
 
 @JvmName("completedLibrary")
-suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> = runCatching {
-    val page = getOrThrow()
-    completePlaylistPage(page) { continuation ->
-        YouTube.playlistContinuation(continuation, page.playlist.id).getOrNull()
+suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> =
+    runCatching {
+        val page = getOrThrow()
+        completePlaylistPage(page) { continuation ->
+            YouTube.playlistContinuation(continuation, page.playlist.id).getOrNull()
+        }
     }
-}
 
 internal suspend fun completePlaylistPage(
     page: PlaylistPage,
     fetchContinuationPage: suspend (String) -> PlaylistContinuationPage?,
 ): PlaylistPage {
     val songs = page.songs.toMutableList()
-    var continuation = page.songsContinuation.normalizedContinuation()
-        ?: page.continuation.normalizedContinuation()
+    var continuation =
+        page.songsContinuation.normalizedContinuation()
+            ?: page.continuation.normalizedContinuation()
     val seenContinuations = mutableSetOf<String>()
     var requestCount = 0
     val maxRequests = 500
@@ -56,51 +58,53 @@ internal suspend fun completePlaylistPage(
     return page.copy(
         songs = songs,
         songsContinuation = null,
-        continuation = null
+        continuation = null,
     )
 }
 
 @JvmName("completedPlaylist")
-suspend fun Result<LibraryPage>.completed(): Result<LibraryPage> = runCatching {
-    val page = getOrThrow()
-    val items = page.items.toMutableList()
-    var continuation = page.continuation
-    val seenContinuations = mutableSetOf<String>()
-    var requestCount = 0
-    val maxRequests = 500
-    var consecutiveEmptyResponses = 0
-    
-    while (continuation != null && requestCount < maxRequests) {
-        if (continuation in seenContinuations) {
-            break
+suspend fun Result<LibraryPage>.completed(): Result<LibraryPage> =
+    runCatching {
+        val page = getOrThrow()
+        val items = page.items.toMutableList()
+        var continuation = page.continuation
+        val seenContinuations = mutableSetOf<String>()
+        var requestCount = 0
+        val maxRequests = 500
+        var consecutiveEmptyResponses = 0
+
+        while (continuation != null && requestCount < maxRequests) {
+            if (continuation in seenContinuations) {
+                break
+            }
+            seenContinuations.add(continuation)
+            requestCount++
+
+            val continuationPage = YouTube.libraryContinuation(continuation).getOrNull() ?: break
+
+            if (continuationPage.items.isEmpty()) {
+                consecutiveEmptyResponses++
+                if (consecutiveEmptyResponses >= 2) break
+            } else {
+                consecutiveEmptyResponses = 0
+                items += continuationPage.items
+            }
+
+            continuation = continuationPage.continuation
         }
-        seenContinuations.add(continuation)
-        requestCount++
-        
-        val continuationPage = YouTube.libraryContinuation(continuation).getOrNull() ?: break
-        
-        if (continuationPage.items.isEmpty()) {
-            consecutiveEmptyResponses++
-            if (consecutiveEmptyResponses >= 2) break
-        } else {
-            consecutiveEmptyResponses = 0
-            items += continuationPage.items
-        }
-        
-        continuation = continuationPage.continuation
+        LibraryPage(
+            items = items,
+            continuation = null,
+        )
     }
-    LibraryPage(
-        items = items,
-        continuation = null
-    )
-}
 
 fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
 
 fun sha1(str: String): String = MessageDigest.getInstance("SHA-1").digest(str.toByteArray()).toHex()
 
 fun parseCookieString(cookie: String): Map<String, String> =
-    cookie.split(";")
+    cookie
+        .split(";")
         .map { it.trim() }
         .filter { it.isNotBlank() }
         .mapNotNull { part ->
@@ -111,11 +115,9 @@ fun parseCookieString(cookie: String): Map<String, String> =
                 val key = part.substring(0, splitIndex).trim()
                 if (key.isEmpty()) null else key to part.substring(splitIndex + 1).trim()
             }
-        }
-        .toMap()
+        }.toMap()
 
-fun hasYouTubeLoginCookie(cookie: String?): Boolean =
-    youtubeLoginCookieValue(cookie) != null
+fun hasYouTubeLoginCookie(cookie: String?): Boolean = youtubeLoginCookieValue(cookie) != null
 
 fun youtubeLoginCookieValue(cookie: String?): String? {
     val cookieMap = cookie?.let(::parseCookieString).orEmpty()
@@ -124,12 +126,13 @@ fun youtubeLoginCookieValue(cookie: String?): String? {
     }
 }
 
-private val YOUTUBE_LOGIN_COOKIE_NAMES = listOf(
-    "SAPISID",
-    "__Secure-3PAPISID",
-    "__Secure-1PAPISID",
-    "APISID"
-)
+private val YOUTUBE_LOGIN_COOKIE_NAMES =
+    listOf(
+        "SAPISID",
+        "__Secure-3PAPISID",
+        "__Secure-1PAPISID",
+        "APISID",
+    )
 
 fun String.parseTime(): Int? {
     val normalized =
@@ -175,8 +178,6 @@ private fun Char.isIgnorableDurationChar(): Boolean =
     isWhitespace() ||
         Character.getType(this) == Character.FORMAT.toInt()
 
-fun isPrivateId(browseId: String): Boolean {
-    return browseId.contains("privately")
-}
+fun isPrivateId(browseId: String): Boolean = browseId.contains("privately")
 
 private fun String?.normalizedContinuation(): String? = this?.takeUnless(String::isBlank)

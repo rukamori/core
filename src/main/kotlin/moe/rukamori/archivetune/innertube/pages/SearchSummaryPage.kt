@@ -159,7 +159,10 @@ data class SearchSummaryPage(
                             renderer.onTap.browseEndpoint.browseId
                                 .removePrefix("VL"),
                         title =
-                            renderer.header?.musicCardShelfHeaderBasicRenderer?.title?.runs
+                            renderer.header
+                                ?.musicCardShelfHeaderBasicRenderer
+                                ?.title
+                                ?.runs
                                 ?.joinToString(separator = "") { it.text }
                                 ?: return null,
                         author =
@@ -187,11 +190,12 @@ data class SearchSummaryPage(
                     )
                 }
 
-                else -> null
+                else -> {
+                    null
+                }
             }
         }
 
-        fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): YTItem? =
-            SearchPage.toYTItem(renderer)
+        fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): YTItem? = SearchPage.toYTItem(renderer)
     }
 }

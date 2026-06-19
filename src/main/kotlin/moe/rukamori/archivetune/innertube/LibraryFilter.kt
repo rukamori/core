@@ -1,7 +1,9 @@
 package moe.rukamori.archivetune.innertube
 
 @JvmInline
-value class LibraryFilter(val value: String) {
+value class LibraryFilter(
+    val value: String,
+) {
     companion object {
         val FILTER_RECENT_ACTIVITY = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCaEFCb0FZQg%3D%3D")
         val FILTER_RECENTLY_PLAYED = LibraryFilter("4qmFsgIrEhdGRW11c2ljX2xpYnJhcnlfbGFuZGluZxoQZ2dNR0tnUUlCUkFCb0FZQg%3D%3D")

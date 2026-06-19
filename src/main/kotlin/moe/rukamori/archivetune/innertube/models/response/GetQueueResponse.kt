@@ -7,8 +7,8 @@
 
 package moe.rukamori.archivetune.innertube.models.response
 
-import moe.rukamori.archivetune.innertube.models.PlaylistPanelRenderer
 import kotlinx.serialization.Serializable
+import moe.rukamori.archivetune.innertube.models.PlaylistPanelRenderer
 
 @Serializable
 data class GetQueueResponse(

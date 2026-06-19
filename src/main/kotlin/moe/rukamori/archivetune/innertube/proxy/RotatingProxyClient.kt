@@ -21,15 +21,16 @@ import java.net.Proxy
 import java.util.concurrent.TimeUnit
 
 class RotatingProxyClient {
-
     private val selector = RotatingProxySelector()
 
-    private val client: OkHttpClient = OkHttpClient.Builder()
-        .proxySelector(selector)
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .retryOnConnectionFailure(false)
-        .build()
+    private val client: OkHttpClient =
+        OkHttpClient
+            .Builder()
+            .proxySelector(selector)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(false)
+            .build()
 
     internal fun selector(): RotatingProxySelector = selector
 
@@ -52,16 +53,21 @@ class RotatingProxyClient {
     }
 
     private fun fetchProxyConfigs(): List<ProxyConfig> {
-        val fetchClient = OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .build()
-        val request = Request.Builder()
-            .url("https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt")
-            .build()
+        val fetchClient =
+            OkHttpClient
+                .Builder()
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(20, TimeUnit.SECONDS)
+                .build()
+        val request =
+            Request
+                .Builder()
+                .url("https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt")
+                .build()
         return fetchClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return emptyList()
-            response.body?.string()
+            response.body
+                ?.string()
                 ?.lineSequence()
                 ?.mapNotNull(::parseProxyLine)
                 ?.take(MAX_PROXY_CANDIDATES)
@@ -70,32 +76,36 @@ class RotatingProxyClient {
         }
     }
 
-    private suspend fun validateProxyConfigs(configs: List<ProxyConfig>): List<ProxyConfig> = coroutineScope {
-        val semaphore = Semaphore(PROXY_VALIDATION_CONCURRENCY)
-        configs
-            .map { config ->
-                async(Dispatchers.IO) {
-                    semaphore.withPermit {
-                        if (isProxyUsableForYouTubeMusic(config)) config else null
+    private suspend fun validateProxyConfigs(configs: List<ProxyConfig>): List<ProxyConfig> =
+        coroutineScope {
+            val semaphore = Semaphore(PROXY_VALIDATION_CONCURRENCY)
+            configs
+                .map { config ->
+                    async(Dispatchers.IO) {
+                        semaphore.withPermit {
+                            if (isProxyUsableForYouTubeMusic(config)) config else null
+                        }
                     }
-                }
-            }
-            .awaitAll()
-            .filterNotNull()
-            .take(MAX_ACTIVE_PROXIES)
-    }
+                }.awaitAll()
+                .filterNotNull()
+                .take(MAX_ACTIVE_PROXIES)
+        }
 
     private fun isProxyUsableForYouTubeMusic(config: ProxyConfig): Boolean {
-        val validationClient = OkHttpClient.Builder()
-            .proxy(Proxy(Proxy.Type.HTTP, InetSocketAddress.createUnresolved(config.host, config.port)))
-            .connectTimeout(PROXY_VALIDATION_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .readTimeout(PROXY_VALIDATION_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .callTimeout(PROXY_VALIDATION_CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .retryOnConnectionFailure(false)
-            .build()
-        val request = Request.Builder()
-            .url(YOUTUBE_MUSIC_PROBE_URL)
-            .build()
+        val validationClient =
+            OkHttpClient
+                .Builder()
+                .proxy(Proxy(Proxy.Type.HTTP, InetSocketAddress.createUnresolved(config.host, config.port)))
+                .connectTimeout(PROXY_VALIDATION_CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(PROXY_VALIDATION_READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .callTimeout(PROXY_VALIDATION_CALL_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .retryOnConnectionFailure(false)
+                .build()
+        val request =
+            Request
+                .Builder()
+                .url(YOUTUBE_MUSIC_PROBE_URL)
+                .build()
 
         return runCatching {
             validationClient.newCall(request).execute().use { response ->
