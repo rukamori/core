@@ -1198,6 +1198,31 @@ object YouTube {
             exception.response.status == HttpStatusCode.BadRequest
     }
 
+    private suspend fun <T> withPlaylistMutationAuthRecovery(block: suspend () -> T): T {
+        val initialAuthState = authState
+        return try {
+            block()
+        } catch (e: Throwable) {
+            if (!shouldRetryPlaylistMutationWithoutDelegatedContext(initialAuthState, e)) throw e
+            authState = authState.copy(dataSyncId = null)
+            block()
+        }
+    }
+
+    private fun shouldRetryPlaylistMutationWithoutDelegatedContext(
+        initialAuthState: PlaybackAuthState,
+        failure: Throwable,
+    ): Boolean {
+        val exception = failure as? ClientRequestException ?: return false
+        if (exception.response.status != HttpStatusCode.Forbidden) return false
+
+        val currentAuthState = authState
+        return initialAuthState.hasPlaybackLoginContext &&
+            currentAuthState.hasPlaybackLoginContext &&
+            currentAuthState.cookie == initialAuthState.cookie &&
+            currentAuthState.dataSyncId == initialAuthState.dataSyncId
+    }
+
     suspend fun moodAndGenres(): Result<List<MoodAndGenres>> =
         runCatching {
             val response = innerTube.browse(WEB_REMIX, browseId = BROWSE_ID_MOODS_AND_GENRES).body<BrowseResponse>()
@@ -1785,10 +1810,11 @@ object YouTube {
         videoId: String,
     ) = runCatching {
         val result =
-            innerTube
-                .addToPlaylist(WEB_REMIX, playlistId, videoId)
-                .body<AddItemYouTubePlaylistResponse>()
-                .playlistEditResults
+            withPlaylistMutationAuthRecovery {
+                innerTube
+                    .addToPlaylist(WEB_REMIX, playlistId, videoId)
+                    .body<AddItemYouTubePlaylistResponse>()
+            }.playlistEditResults
                 .firstOrNull { result ->
                     result.playlistEditVideoAddedResultData.videoId == videoId
                 }?.playlistEditVideoAddedResultData
@@ -1816,9 +1842,11 @@ object YouTube {
             videoIds.chunked(batchSize).forEach { batch ->
                 val batchResponse =
                     runCatching {
-                        innerTube
-                            .addSongsToPlaylist(WEB_REMIX, playlistId, batch)
-                            .body<AddItemYouTubePlaylistResponse>()
+                        withPlaylistMutationAuthRecovery {
+                            innerTube
+                                .addSongsToPlaylist(WEB_REMIX, playlistId, batch)
+                                .body<AddItemYouTubePlaylistResponse>()
+                        }
                     }
 
                 if (batchResponse.isSuccess) {
@@ -1856,7 +1884,9 @@ object YouTube {
         playlistId: String,
         addPlaylistId: String,
     ) = runCatching {
-        innerTube.addPlaylistToPlaylist(WEB_REMIX, playlistId, addPlaylistId)
+        withPlaylistMutationAuthRecovery {
+            innerTube.addPlaylistToPlaylist(WEB_REMIX, playlistId, addPlaylistId)
+        }
     }
 
     suspend fun playlistEntrySetVideoIds(
@@ -1894,7 +1924,9 @@ object YouTube {
         videoId: String,
         setVideoId: String,
     ) = runCatching {
-        innerTube.removeFromPlaylist(WEB_REMIX, playlistId, videoId, setVideoId)
+        withPlaylistMutationAuthRecovery {
+            innerTube.removeFromPlaylist(WEB_REMIX, playlistId, videoId, setVideoId)
+        }
     }
 
     suspend fun moveSongPlaylist(
@@ -1902,26 +1934,34 @@ object YouTube {
         setVideoId: String,
         successorSetVideoId: String?,
     ) = runCatching {
-        innerTube.moveSongPlaylist(WEB_REMIX, playlistId, setVideoId, successorSetVideoId)
+        withPlaylistMutationAuthRecovery {
+            innerTube.moveSongPlaylist(WEB_REMIX, playlistId, setVideoId, successorSetVideoId)
+        }
     }
 
     suspend fun createPlaylist(
         title: String,
         videoIds: List<String> = emptyList(),
     ) = runCatching {
-        innerTube.createPlaylist(WEB_REMIX, title, videoIds).body<CreatePlaylistResponse>().playlistId
+        withPlaylistMutationAuthRecovery {
+            innerTube.createPlaylist(WEB_REMIX, title, videoIds).body<CreatePlaylistResponse>()
+        }.playlistId
     }
 
     suspend fun renamePlaylist(
         playlistId: String,
         name: String,
     ) = runCatching {
-        innerTube.renamePlaylist(WEB_REMIX, playlistId, name)
+        withPlaylistMutationAuthRecovery {
+            innerTube.renamePlaylist(WEB_REMIX, playlistId, name)
+        }
     }
 
     suspend fun deletePlaylist(playlistId: String) =
         runCatching {
-            innerTube.deletePlaylist(WEB_REMIX, playlistId)
+            withPlaylistMutationAuthRecovery {
+                innerTube.deletePlaylist(WEB_REMIX, playlistId)
+            }
         }
 
     suspend fun player(
