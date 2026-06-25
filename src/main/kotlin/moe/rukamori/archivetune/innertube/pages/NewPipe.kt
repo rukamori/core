@@ -158,7 +158,7 @@ object NewPipeUtils {
         try {
             block()
         } catch (e: Exception) {
-            runCatching { YoutubeJavaScriptPlayerManager.reset() }
+            runCatching { YoutubeJavaScriptPlayerManager.clearAllCaches() }
             block()
         }
 }
