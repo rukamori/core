@@ -356,7 +356,7 @@ class InnerTube {
         setLogin: Boolean,
         authState: PlaybackAuthState,
         includeDataSyncId: Boolean,
-    ) = httpClient.post("player") {
+    ) = httpClient.post(client.requestApiUrl("player")) {
         ytClient(client, setLogin = setLogin, authState = authState)
         setBody(
             PlayerBody(
@@ -407,6 +407,7 @@ class InnerTube {
         if (clientError.response.status != HttpStatusCode.BadRequest) return false
         val message = clientError.message.orEmpty()
         if (!message.contains("/youtubei/v1/player", ignoreCase = true)) return false
+        if (message.contains("Origin doesn't match Host", ignoreCase = true)) return false
         return message.contains("INVALID_ARGUMENT", ignoreCase = true) ||
             message.contains("invalid argument", ignoreCase = true)
     }
