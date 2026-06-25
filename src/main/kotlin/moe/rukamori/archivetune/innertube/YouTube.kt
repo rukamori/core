@@ -2285,16 +2285,36 @@ object YouTube {
                 .toList()
         }
 
+    suspend fun accountDataSyncId(): Result<String> =
+        runCatching {
+            val response =
+                Json.parseToJsonElement(
+                    innerTube.accountChannels(accountSwitcherClient).bodyAsText(),
+                )
+
+            response.findMainAppWebDataSyncId()
+                ?: response
+                    .objectsNamed("accountItemRenderer")
+                    .mapNotNull { renderer ->
+                        val isDisabled = renderer.booleanValue("isDisabled") ?: false
+                        val hasChannel = renderer.booleanValue("hasChannel") ?: true
+                        if (isDisabled || !hasChannel) return@mapNotNull null
+
+                        renderer.parseAccountChannelDataSyncId()?.let { dataSyncId ->
+                            dataSyncId to (renderer.booleanValue("isSelected") ?: false)
+                        }
+                    }.sortedByDescending { (_, isSelected) -> isSelected }
+                    .firstOrNull()
+                    ?.first
+                ?: throw IllegalStateException("Failed to get YouTube DataSyncId")
+        }
+
     private fun parseAccountChannel(renderer: JsonObject): AccountChannel? {
         val isDisabled = renderer.booleanValue("isDisabled") ?: false
         val hasChannel = renderer.booleanValue("hasChannel") ?: true
         if (isDisabled || !hasChannel) return null
 
-        val dataSyncId =
-            renderer["serviceEndpoint"]
-                ?.findDelegationValue()
-                ?.normalizeAccountChannelDataSyncId()
-                ?: return null
+        val dataSyncId = renderer.parseAccountChannelDataSyncId() ?: return null
 
         val name = renderer["accountName"].textValue() ?: return null
         val byline = renderer["accountByline"].textValue()
@@ -2310,6 +2330,22 @@ object YouTube {
             isSelected = renderer.booleanValue("isSelected") ?: false,
         )
     }
+
+    private fun JsonObject.parseAccountChannelDataSyncId(): String? =
+        this["serviceEndpoint"]
+            ?.findDelegationValue()
+            ?.normalizeAccountChannelDataSyncId()
+
+    private fun JsonElement.findMainAppWebDataSyncId(): String? =
+        (this as? JsonObject)
+            ?.get("responseContext")
+            ?.jsonObjectOrNull()
+            ?.get("mainAppWebResponseContext")
+            ?.jsonObjectOrNull()
+            ?.get("dataSyncId")
+            ?.jsonPrimitiveOrNull()
+            ?.contentOrNull
+            ?.normalizeAccountChannelDataSyncId()
 
     private fun JsonElement.objectsNamed(name: String): Sequence<JsonObject> =
         sequence {
@@ -2409,10 +2445,19 @@ object YouTube {
 
     private fun JsonElement?.jsonPrimitiveOrNull(): JsonPrimitive? = this as? JsonPrimitive
 
-    private fun String.normalizeAccountChannelDataSyncId(): String =
-        takeIf { !it.contains("||") }
-            ?: takeIf { it.endsWith("||") }?.substringBefore("||")
-            ?: substringAfter("||")
+    private fun String.normalizeAccountChannelDataSyncId(): String? {
+        val normalized =
+            trim()
+                .takeIf(String::isNotBlank)
+                ?.let { value ->
+                    value
+                        .takeIf { !it.contains("||") }
+                        ?: value.takeIf { it.endsWith("||") }?.substringBefore("||")
+                        ?: value.substringAfter("||")
+                }?.trim()
+                ?.takeIf(String::isNotBlank)
+        return normalized
+    }
 
     suspend fun getMediaInfo(videoId: String): Result<MediaInfo> =
         runCatching {
