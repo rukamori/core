@@ -164,7 +164,9 @@ object NewPipeUtils {
 
     fun getSignatureTimestamp(videoId: String): Result<Int> =
         runCatching {
-            YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId)
+            withRefreshedJavaScriptPlayerCacheOnExtractorFailure {
+                YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId)
+            }
         }
 
     fun getStreamUrl(
@@ -184,7 +186,7 @@ object NewPipeUtils {
                                 initialDelayMs = 250L,
                                 maxDelayMs = 2_000L,
                             ) {
-                                YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, directUrl)
+                                getUrlWithThrottlingParameterDeobfuscated(videoId, directUrl)
                             }
                         }.getOrElse { directUrl }
                     } else {
@@ -214,10 +216,7 @@ object NewPipeUtils {
                         params["url"]?.let { URLBuilder(it) }
                             ?: throw ParsingException("Could not parse cipher url")
                     url.parameters[signatureParam] =
-                        YoutubeJavaScriptPlayerManager.deobfuscateSignature(
-                            videoId,
-                            obfuscatedSignature,
-                        )
+                        deobfuscateSignature(videoId, obfuscatedSignature)
                     url.toString()
                 }
 
@@ -228,7 +227,7 @@ object NewPipeUtils {
                         initialDelayMs = 250L,
                         maxDelayMs = 2_000L,
                     ) {
-                        YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, url)
+                        getUrlWithThrottlingParameterDeobfuscated(videoId, url)
                     }
                 }.getOrElse { url }
 
@@ -238,6 +237,52 @@ object NewPipeUtils {
                 authState = authState,
             )
         }
+
+    private fun deobfuscateSignature(
+        videoId: String,
+        obfuscatedSignature: String,
+    ): String =
+        withRefreshedJavaScriptPlayerCacheOnExtractorFailure {
+            YoutubeJavaScriptPlayerManager.deobfuscateSignature(videoId, obfuscatedSignature)
+        }
+
+    private fun getUrlWithThrottlingParameterDeobfuscated(
+        videoId: String,
+        url: String,
+    ): String =
+        withRefreshedJavaScriptPlayerCacheOnExtractorFailure {
+            YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, url)
+        }
+
+    private inline fun <T> withRefreshedJavaScriptPlayerCacheOnExtractorFailure(block: () -> T): T {
+        try {
+            return block()
+        } catch (firstFailure: Throwable) {
+            if (!firstFailure.isJavaScriptPlayerExtractorFailure()) throw firstFailure
+            YoutubeJavaScriptPlayerManager.clearAllCaches()
+            return block()
+        }
+    }
+
+    private fun Throwable.isJavaScriptPlayerExtractorFailure(): Boolean {
+        var current: Throwable? = this
+        while (current != null) {
+            val message = current.message.orEmpty()
+            if (
+                current is ParsingException &&
+                (
+                    message.contains("deobfuscation", ignoreCase = true) ||
+                        message.contains("signature timestamp", ignoreCase = true) ||
+                        message.contains("JavaScript player", ignoreCase = true) ||
+                        message.contains("base JavaScript player", ignoreCase = true)
+                )
+            ) {
+                return true
+            }
+            current = current.cause
+        }
+        return false
+    }
 
     private fun resolveExternalAudioStream(
         service: StreamingService,
