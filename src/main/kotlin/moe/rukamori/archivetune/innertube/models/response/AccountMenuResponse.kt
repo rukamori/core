@@ -10,7 +10,6 @@ package moe.rukamori.archivetune.innertube.models.response
 import kotlinx.serialization.Serializable
 import moe.rukamori.archivetune.innertube.models.AccountInfo
 import moe.rukamori.archivetune.innertube.models.Runs
-import moe.rukamori.archivetune.innertube.models.Thumbnail
 import moe.rukamori.archivetune.innertube.models.Thumbnails
 
 @Serializable

@@ -12,9 +12,6 @@ import moe.rukamori.archivetune.innertube.models.SongItem
 import moe.rukamori.archivetune.innertube.models.WatchEndpoint
 import moe.rukamori.archivetune.innertube.models.YouTubeClient
 import moe.rukamori.archivetune.innertube.models.YouTubeLocale
-import moe.rukamori.archivetune.innertube.models.response.CreatePlaylistResponse
-import moe.rukamori.archivetune.innertube.models.response.GetQueueResponse
-import moe.rukamori.archivetune.innertube.models.response.GetTranscriptResponse
 import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
 import moe.rukamori.archivetune.innertube.pages.AlbumPage
 import moe.rukamori.archivetune.innertube.pages.ArtistItemsContinuationPage

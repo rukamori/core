@@ -15,7 +15,6 @@ import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.compression.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.CancellationException
@@ -33,9 +32,6 @@ import moe.rukamori.archivetune.innertube.proxy.RotatingProxySelector
 import moe.rukamori.archivetune.innertube.utils.sha1
 import moe.rukamori.archivetune.innertube.utils.youtubeLoginCookieValue
 import okhttp3.Dns
-import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.OkHttpClient
-import okhttp3.dnsoverhttps.DnsOverHttps
 import java.io.IOException
 import java.net.Proxy
 import java.util.*
