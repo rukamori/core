@@ -8,6 +8,7 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":morideobfuscator"))
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.okhttp.dnsoverhttps)

@@ -9,6 +9,8 @@ package moe.rukamori.archivetune.innertube
 
 import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
+import kotlinx.coroutines.CancellationException
+import moe.rukamori.archivetune.morideobfuscator.MoriCipherRuntime
 import moe.rukamori.archivetune.innertube.models.YouTubeClient
 import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -90,40 +92,60 @@ object NewPipeUtils {
         NewPipe.init(NewPipeDownloaderImpl(YouTube.streamProxy))
     }
 
-    fun getSignatureTimestamp(videoId: String): Result<Int> =
-        runCatching {
+    suspend fun getSignatureTimestamp(videoId: String): Result<Int> {
+        MoriCipherRuntime.signatureTimestamp(videoId).getOrNull()?.let {
+            return Result.success(it)
+        }
+        return runCatching {
             withRefreshedJavaScriptPlayerCacheOnExtractorFailure {
                 YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId)
             }
         }
+    }
 
-    fun getStreamUrl(
+    suspend fun getStreamUrl(
         format: PlayerResponse.StreamingData.Format,
         videoId: String,
         client: YouTubeClient? = null,
         authState: PlaybackAuthState = YouTube.currentPlaybackAuthState(),
-    ): Result<String> =
-        runCatching {
+    ): Result<String> {
+        try {
             val directUrl = format.url
             if (directUrl != null) {
                 val resolvedDirectUrl =
                     if (directUrl.toHttpUrlOrNull()?.queryParameter("n")?.isNotBlank() == true) {
-                        runCatching {
-                            getUrlWithThrottlingParameterDeobfuscated(videoId, directUrl)
-                        }.getOrElse { directUrl }
+                        MoriCipherRuntime
+                            .transformNParameter(videoId, directUrl)
+                            .getOrElse {
+                                runCatching {
+                                    getUrlWithThrottlingParameterDeobfuscated(videoId, directUrl)
+                                }.getOrElse { directUrl }
+                            }
                     } else {
                         directUrl
                     }
 
-                return@runCatching YouTube.appendGvsPoToken(
-                    url = resolvedDirectUrl,
-                    client = client,
-                    authState = authState,
+                return Result.success(
+                    YouTube.appendGvsPoToken(
+                        url = resolvedDirectUrl,
+                        client = client,
+                        authState = authState,
+                    ),
                 )
             }
 
             val cipherString = format.signatureCipher ?: format.cipher
-            if (cipherString == null) throw ParsingException("Could not find format url")
+                ?: return Result.failure(ParsingException("Could not find format url"))
+
+            MoriCipherRuntime.resolveStreamUrl(videoId, cipherString).getOrNull()?.let { resolved ->
+                return Result.success(
+                    YouTube.appendGvsPoToken(
+                        url = resolved,
+                        client = client,
+                        authState = authState,
+                    ),
+                )
+            }
 
             val params = parseQueryString(cipherString)
             val obfuscatedSignature = params["s"] ?: throw ParsingException("Could not parse cipher signature")
@@ -139,12 +161,19 @@ object NewPipeUtils {
 
             urlBuilder.parameters[signatureParam] = deobfuscatedSig
 
-            return@runCatching YouTube.appendGvsPoToken(
-                url = urlBuilder.buildString(),
-                client = client,
-                authState = authState,
+            return Result.success(
+                YouTube.appendGvsPoToken(
+                    url = urlBuilder.buildString(),
+                    client = client,
+                    authState = authState,
+                ),
             )
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Exception) {
+            return Result.failure(error)
         }
+    }
 
     private fun getUrlWithThrottlingParameterDeobfuscated(
         videoId: String,
