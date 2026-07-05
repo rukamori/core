@@ -1203,7 +1203,17 @@ object YouTube {
         } catch (e: Throwable) {
             if (!shouldRetryPlaylistMutationWithoutDelegatedContext(initialAuthState, e)) throw e
             authState = authState.copy(dataSyncId = null)
-            block()
+            try {
+                block()
+            } finally {
+                val currentAuthState = authState
+                if (
+                    currentAuthState.cookie == initialAuthState.cookie &&
+                    currentAuthState.dataSyncId == null
+                ) {
+                    authState = currentAuthState.copy(dataSyncId = initialAuthState.dataSyncId)
+                }
+            }
         }
     }
 
