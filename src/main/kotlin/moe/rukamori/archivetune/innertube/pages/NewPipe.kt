@@ -97,7 +97,7 @@ object NewPipeUtils {
             return Result.success(it)
         }
         return runCatching {
-            withRefreshedJavaScriptPlayerCacheOnExtractorFailure {
+            withJavaScriptPlayerCacheRecovery {
                 YoutubeJavaScriptPlayerManager.getSignatureTimestamp(videoId)
             }
         }
@@ -155,7 +155,7 @@ object NewPipeUtils {
             val urlBuilder = URLBuilder(urlString)
 
             val deobfuscatedSig =
-                withRefreshedJavaScriptPlayerCacheOnExtractorFailure {
+                withJavaScriptPlayerCacheRecovery {
                     YoutubeJavaScriptPlayerManager.deobfuscateSignature(videoId, obfuscatedSignature)
                 }
 
@@ -179,15 +179,17 @@ object NewPipeUtils {
         videoId: String,
         url: String,
     ): String =
-        withRefreshedJavaScriptPlayerCacheOnExtractorFailure {
+        withJavaScriptPlayerCacheRecovery {
             YoutubeJavaScriptPlayerManager.getUrlWithThrottlingParameterDeobfuscated(videoId, url)
         }
 
-    private inline fun <T> withRefreshedJavaScriptPlayerCacheOnExtractorFailure(block: () -> T): T =
+    private inline fun <T> withJavaScriptPlayerCacheRecovery(block: () -> T): T =
         try {
             block()
-        } catch (e: Exception) {
+        } catch (parsingFailure: ParsingException) {
+            throw parsingFailure
+        } catch (error: Exception) {
             runCatching { YoutubeJavaScriptPlayerManager.clearAllCaches() }
-            block()
+            throw error
         }
 }
