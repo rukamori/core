@@ -1202,15 +1202,13 @@ object YouTube {
             block()
         } catch (e: Throwable) {
             if (!shouldRetryPlaylistMutationWithoutDelegatedContext(initialAuthState, e)) throw e
-            authState = authState.copy(dataSyncId = null)
+            val fallbackAuthState = authState.copy(dataSyncId = null)
+            authState = fallbackAuthState
             try {
                 block()
             } finally {
                 val currentAuthState = authState
-                if (
-                    currentAuthState.cookie == initialAuthState.cookie &&
-                    currentAuthState.dataSyncId == null
-                ) {
+                if (currentAuthState.fingerprint == fallbackAuthState.fingerprint) {
                     authState = currentAuthState.copy(dataSyncId = initialAuthState.dataSyncId)
                 }
             }
