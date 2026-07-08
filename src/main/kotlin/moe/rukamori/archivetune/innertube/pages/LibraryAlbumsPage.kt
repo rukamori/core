@@ -16,6 +16,7 @@ data class LibraryAlbumsPage(
 ) {
     companion object {
         fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): AlbumItem? {
+            val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
             val browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null
             val playlistId =
                 renderer.thumbnailOverlay
@@ -49,7 +50,9 @@ data class LibraryAlbumsPage(
                         ?.lastOrNull()
                         ?.text
                         ?.toIntOrNull(),
-                thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                thumbnail = thumbnail.normalizedUrl,
+                thumbnailWidth = thumbnail.width,
+                thumbnailHeight = thumbnail.height,
                 explicit =
                     renderer.subtitleBadges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"

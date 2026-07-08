@@ -30,11 +30,12 @@ data class SearchResult(
 object SearchPage {
     fun toYTItem(renderer: MusicResponsiveListItemRenderer): YTItem? {
         val title = renderer.titleText ?: return null
-        val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
+        val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
         val metadata = renderer.metadataGroups()
         return when {
             renderer.isSong -> {
                 val endpoint = renderer.watchEndpoint()
+                val itemThumbnail = thumbnail ?: return null
                 SongItem(
                     id = renderer.playlistItemData?.videoId ?: endpoint?.videoId ?: return null,
                     title = title,
@@ -49,7 +50,9 @@ object SearchPage {
                     duration = metadata.duration(),
                     viewCountText = metadata.viewCountText(),
                     viewCount = metadata.viewCount(),
-                    thumbnail = thumbnail ?: return null,
+                    thumbnail = itemThumbnail.normalizedUrl,
+                    thumbnailWidth = itemThumbnail.width,
+                    thumbnailHeight = itemThumbnail.height,
                     explicit = renderer.isExplicit,
                     endpoint = endpoint,
                 )
@@ -59,7 +62,9 @@ object SearchPage {
                 ArtistItem(
                     id = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
                     title = title,
-                    thumbnail = thumbnail,
+                    thumbnail = thumbnail?.normalizedUrl,
+                    thumbnailWidth = thumbnail?.width,
+                    thumbnailHeight = thumbnail?.height,
                     playEndpoint = renderer.watchEndpoint(),
                     shuffleEndpoint =
                         renderer.menu
@@ -81,6 +86,7 @@ object SearchPage {
             }
 
             renderer.isAlbum -> {
+                val itemThumbnail = thumbnail ?: return null
                 AlbumItem(
                     browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
                     playlistId =
@@ -91,7 +97,9 @@ object SearchPage {
                     title = title,
                     artists = metadata.getOrNull(0).toArtists().takeIf { it.isNotEmpty() },
                     year = metadata.year(),
-                    thumbnail = thumbnail ?: return null,
+                    thumbnail = itemThumbnail.normalizedUrl,
+                    thumbnailWidth = itemThumbnail.width,
+                    thumbnailHeight = itemThumbnail.height,
                     explicit = renderer.isExplicit,
                 )
             }
@@ -109,7 +117,9 @@ object SearchPage {
                     title = title,
                     author = playlistMetadata.playlistAuthor(),
                     songCountText = playlistMetadata.lastText(),
-                    thumbnail = thumbnail,
+                    thumbnail = thumbnail?.normalizedUrl,
+                    thumbnailWidth = thumbnail?.width,
+                    thumbnailHeight = thumbnail?.height,
                     playEndpoint =
                         renderer.watchEndpoint(),
                     shuffleEndpoint =

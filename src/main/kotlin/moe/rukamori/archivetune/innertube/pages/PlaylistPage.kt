@@ -50,6 +50,7 @@ private fun MusicResponsiveListItemRenderer.belongsToPlaylist(playlistId: String
 internal fun MusicResponsiveListItemRenderer.toSongItem(albumColumnIndex: Int? = 2): SongItem? {
     val endpoint = watchEndpoint()
     val videoId = playlistItemData?.videoId ?: endpoint?.videoId ?: return null
+    val thumbnail = thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
     val metadataGroups = metadataGroups()
     return SongItem(
         id = videoId,
@@ -59,7 +60,9 @@ internal fun MusicResponsiveListItemRenderer.toSongItem(albumColumnIndex: Int? =
             albumColumnIndex?.let(::albumFromColumn)
                 ?: metadataGroups.drop(1).firstNotNullOfOrNull { it.toAlbum() },
         duration = fixedDuration ?: metadataGroups.duration(),
-        thumbnail = thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+        thumbnail = thumbnail.normalizedUrl,
+        thumbnailWidth = thumbnail.width,
+        thumbnailHeight = thumbnail.height,
         explicit = isExplicit,
         endpoint = endpoint,
         setVideoId = playlistItemData?.playlistSetVideoId ?: endpoint?.playlistSetVideoId,

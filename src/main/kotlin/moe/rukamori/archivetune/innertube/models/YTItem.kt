@@ -15,6 +15,8 @@ sealed class YTItem {
     abstract val id: String
     abstract val title: String
     abstract val thumbnail: String?
+    abstract val thumbnailWidth: Int?
+    abstract val thumbnailHeight: Int?
     abstract val explicit: Boolean
     abstract val shareLink: String
 }
@@ -54,6 +56,8 @@ data class SongItem(
     val chartPosition: Int? = null,
     val chartChange: String? = null,
     override val thumbnail: String,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
     override val explicit: Boolean = false,
     val endpoint: WatchEndpoint? = null,
     val setVideoId: String? = null,
@@ -72,6 +76,8 @@ data class AlbumItem(
     val artists: List<Artist>?,
     val year: Int? = null,
     override val thumbnail: String,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
     override val explicit: Boolean = false,
     val releaseType: AlbumReleaseType = AlbumReleaseType.ALBUM,
 ) : YTItem() {
@@ -85,6 +91,8 @@ data class PlaylistItem(
     val author: Artist?,
     val songCountText: String?,
     override val thumbnail: String?,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
     val playEndpoint: WatchEndpoint?,
     val shuffleEndpoint: WatchEndpoint?,
     val radioEndpoint: WatchEndpoint?,
@@ -101,6 +109,8 @@ data class ArtistItem(
     override val id: String,
     override val title: String,
     override val thumbnail: String?,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
     val channelId: String? = null,
     val playEndpoint: WatchEndpoint? = null,
     val shuffleEndpoint: WatchEndpoint?,

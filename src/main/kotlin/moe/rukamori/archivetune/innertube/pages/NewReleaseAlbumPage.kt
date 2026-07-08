@@ -16,6 +16,7 @@ import moe.rukamori.archivetune.innertube.models.splitBySeparator
 
 object NewReleaseAlbumPage {
     fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): AlbumItem? {
+        val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
         val subtitleRuns = renderer.subtitle?.runs ?: return null
         val subtitleGroups = subtitleRuns.splitBySeparator()
 
@@ -49,7 +50,9 @@ object NewReleaseAlbumPage {
                 AlbumReleaseType.fromLabel(
                     subtitleGroups.firstOrNull()?.joinToString(separator = "") { it.text },
                 ),
-            thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+            thumbnail = thumbnail.normalizedUrl,
+            thumbnailWidth = thumbnail.width,
+            thumbnailHeight = thumbnail.height,
             explicit =
                 renderer.subtitleBadges?.find {
                     it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"

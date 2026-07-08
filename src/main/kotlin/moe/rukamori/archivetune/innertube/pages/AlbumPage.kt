@@ -14,6 +14,7 @@ import moe.rukamori.archivetune.innertube.models.MusicResponsiveHeaderRenderer
 import moe.rukamori.archivetune.innertube.models.MusicResponsiveListItemRenderer
 import moe.rukamori.archivetune.innertube.models.SectionListRenderer
 import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.archivetune.innertube.models.Thumbnail
 import moe.rukamori.archivetune.innertube.models.getContinuation
 import moe.rukamori.archivetune.innertube.models.getItems
 import moe.rukamori.archivetune.innertube.models.oddElements
@@ -75,24 +76,26 @@ data class AlbumPage(
                 ?.toIntOrNull()
         }
 
-        fun getThumbnail(response: BrowseResponse): String? =
-            response.background?.musicThumbnailRenderer?.getThumbnailUrl()
-                ?: getHeader(response)?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
+        fun getThumbnailInfo(response: BrowseResponse): Thumbnail? =
+            response.background?.musicThumbnailRenderer?.getBestThumbnail()
+                ?: getHeader(response)?.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
                 ?: response.header
                     ?.musicDetailHeaderRenderer
                     ?.thumbnail
                     ?.croppedSquareThumbnailRenderer
-                    ?.getThumbnailUrl()
+                    ?.getBestThumbnail()
                 ?: response.header
                     ?.musicVisualHeaderRenderer
                     ?.foregroundThumbnail
                     ?.musicThumbnailRenderer
-                    ?.getThumbnailUrl()
+                    ?.getBestThumbnail()
                 ?: response.header
                     ?.musicVisualHeaderRenderer
                     ?.thumbnail
                     ?.musicThumbnailRenderer
-                    ?.getThumbnailUrl()
+                    ?.getBestThumbnail()
+
+        fun getThumbnail(response: BrowseResponse): String? = getThumbnailInfo(response)?.normalizedUrl
 
         fun getArtists(response: BrowseResponse): List<Artist> {
             val artists =
@@ -268,13 +271,12 @@ data class AlbumPage(
                     ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
                     ?: return null
             val thumbnail =
-                renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
+                renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
                     ?: renderer.thumbnail
                         ?.musicAnimatedThumbnailRenderer
                         ?.backupRenderer
-                        ?.getThumbnailUrl()
-                    ?: album?.thumbnail
-                    ?: return null
+                        ?.getBestThumbnail()
+            val thumbnailUrl = thumbnail?.normalizedUrl ?: album?.thumbnail ?: return null
             val songAlbum =
                 album?.let {
                     Album(it.title, it.browseId)
@@ -304,7 +306,9 @@ data class AlbumPage(
                         },
                 album = songAlbum,
                 duration = duration,
-                thumbnail = thumbnail,
+                thumbnail = thumbnailUrl,
+                thumbnailWidth = thumbnail?.width ?: album?.thumbnailWidth,
+                thumbnailHeight = thumbnail?.height ?: album?.thumbnailHeight,
                 explicit =
                     renderer.badges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"

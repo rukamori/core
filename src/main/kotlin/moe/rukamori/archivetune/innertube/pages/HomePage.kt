@@ -107,6 +107,7 @@ data class HomePage(
                                     id = it.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
                                 )
                             }
+                        val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                         SongItem(
                             id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
                             title =
@@ -129,7 +130,9 @@ data class HomePage(
                                         )
                                     },
                             duration = null,
-                            thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                            thumbnail = thumbnail.normalizedUrl,
+                            thumbnailWidth = thumbnail.width,
+                            thumbnailHeight = thumbnail.height,
                             explicit =
                                 renderer.subtitleBadges?.any {
                                     it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -138,6 +141,7 @@ data class HomePage(
                     }
 
                     renderer.isAlbum -> {
+                        val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                         AlbumItem(
                             browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                             playlistId =
@@ -160,7 +164,9 @@ data class HomePage(
                                     )
                                 },
                             year = null,
-                            thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                            thumbnail = thumbnail.normalizedUrl,
+                            thumbnailWidth = thumbnail.width,
+                            thumbnailHeight = thumbnail.height,
                             explicit =
                                 renderer.subtitleBadges?.find {
                                     it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -169,6 +175,7 @@ data class HomePage(
                     }
 
                     renderer.isPlaylist -> {
+                        val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                         PlaylistItem(
                             id =
                                 renderer.navigationEndpoint.browseEndpoint
@@ -188,7 +195,9 @@ data class HomePage(
                                     id = null,
                                 ),
                             songCountText = null,
-                            thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                            thumbnail = thumbnail.normalizedUrl,
+                            thumbnailWidth = thumbnail.width,
+                            thumbnailHeight = thumbnail.height,
                             playEndpoint =
                                 renderer.thumbnailOverlay
                                     ?.musicItemThumbnailOverlayRenderer
@@ -216,13 +225,16 @@ data class HomePage(
                     }
 
                     renderer.isArtist -> {
+                        val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                         ArtistItem(
                             id = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                             title =
                                 renderer.title.runs
                                     ?.lastOrNull()
                                     ?.text ?: return null,
-                            thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                            thumbnail = thumbnail.normalizedUrl,
+                            thumbnailWidth = thumbnail.width,
+                            thumbnailHeight = thumbnail.height,
                             shuffleEndpoint =
                                 renderer.menu
                                     ?.menuRenderer
