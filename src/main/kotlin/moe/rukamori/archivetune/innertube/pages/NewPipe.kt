@@ -117,9 +117,7 @@ object NewPipeUtils {
                         MoriCipherRuntime
                             .transformNParameter(videoId, directUrl)
                             .getOrElse {
-                                runCatching {
-                                    getUrlWithThrottlingParameterDeobfuscated(videoId, directUrl)
-                                }.getOrElse { directUrl }
+                                getUrlWithThrottlingParameterDeobfuscated(videoId, directUrl)
                             }
                     } else {
                         directUrl
@@ -149,7 +147,7 @@ object NewPipeUtils {
 
             val params = parseQueryString(cipherString)
             val obfuscatedSignature = params["s"] ?: throw ParsingException("Could not parse cipher signature")
-            val signatureParam = params["sp"] ?: throw ParsingException("Could not parse cipher signature parameter")
+            val signatureParam = params["sp"]?.takeIf { it.isNotBlank() } ?: "signature"
             val urlString = params["url"] ?: throw ParsingException("Could not parse cipher url")
 
             val urlBuilder = URLBuilder(urlString)
@@ -161,9 +159,11 @@ object NewPipeUtils {
 
             urlBuilder.parameters[signatureParam] = deobfuscatedSig
 
+            val resolvedUrl = getUrlWithThrottlingParameterDeobfuscated(videoId, urlBuilder.buildString())
+
             return Result.success(
                 YouTube.appendGvsPoToken(
-                    url = urlBuilder.buildString(),
+                    url = resolvedUrl,
                     client = client,
                     authState = authState,
                 ),
