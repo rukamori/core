@@ -9,18 +9,18 @@
   </p>
 
   <p align="center">
-    <img src="https://img.shields.io/github/v/release/ArchiveTuneApp/core?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Latest Version" />
-    <img src="https://img.shields.io/github/license/ArchiveTuneApp/core?style=for-the-badge&color=6366f1&labelColor=1e1e2e" alt="License" />
+    <img src="https://img.shields.io/github/v/release/rukamori/core?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Latest Version" />
+    <img src="https://img.shields.io/github/license/rukamori/core?style=for-the-badge&color=6366f1&labelColor=1e1e2e" alt="License" />
     <img src="https://img.shields.io/badge/Language-Kotlin-7f52ff?style=for-the-badge&logo=kotlin&color=6366f1&labelColor=1e1e2e" alt="Kotlin" />
     <img src="https://img.shields.io/badge/Runtime-JVM-6366f1?style=for-the-badge&logo=openjdk&labelColor=1e1e2e" alt="JVM" />
-    <img src="https://img.shields.io/github/stars/ArchiveTuneApp/core?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Stars" />
+    <img src="https://img.shields.io/github/stars/rukamori/core?style=for-the-badge&color=6366f1&labelColor=1e1e2e&logo=github" alt="Stars" />
   </p>
 
-  <a href="https://star-history.com/#ArchiveTuneApp/core&rukamori/ArchiveTune&Date">
+  <a href="https://star-history.com/#rukamori/core&rukamori/ArchiveTune&Date">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=ArchiveTuneApp/core,rukamori/ArchiveTune&type=Date&theme=dark" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=ArchiveTuneApp/core,rukamori/ArchiveTune&type=Date" />
-      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=ArchiveTuneApp/core,rukamori/ArchiveTune&type=Date" width="600" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=rukamori/core,rukamori/ArchiveTune&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=rukamori/core,rukamori/ArchiveTune&type=Date" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=rukamori/core,rukamori/ArchiveTune&type=Date" width="600" />
     </picture>
   </a>
 
