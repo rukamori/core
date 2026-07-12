@@ -200,7 +200,7 @@ class InnerTube {
             if (includeVisitorData) {
                 authState.visitorData?.let { append("X-Goog-Visitor-Id", it) }
             }
-            if (setLogin && client.loginSupported) {
+            if (setLogin && client.supportsCookieAuthentication) {
                 authState.cookie?.let { cookie ->
                     append("cookie", cookie)
                     val loginCookieValue = youtubeLoginCookieValue(cookie) ?: return@let
@@ -230,7 +230,7 @@ class InnerTube {
             append("X-Origin", requestOrigin)
             append("Referer", client.requestReferer())
             authState.visitorData?.let { append("X-Goog-Visitor-Id", it) }
-            if (client.loginSupported) {
+            if (client.supportsCookieAuthentication) {
                 authState.cookie?.let { cookie ->
                     append("cookie", cookie)
                     val loginCookieValue = youtubeLoginCookieValue(cookie) ?: return@let
@@ -316,7 +316,7 @@ class InnerTube {
         setLogin: Boolean = true,
         authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
-        val includeDataSyncId = setLogin && client.loginSupported && !authState.dataSyncId.isNullOrBlank()
+        val includeDataSyncId = setLogin && client.supportsCookieAuthentication && !authState.dataSyncId.isNullOrBlank()
         try {
             executePlayerRequest(
                 client = client,

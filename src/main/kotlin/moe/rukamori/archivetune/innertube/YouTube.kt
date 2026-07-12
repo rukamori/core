@@ -106,7 +106,11 @@ object YouTube {
     private const val BROWSE_ID_MOODS_AND_GENRES = "FEmusic_moods_and_genres"
 
     private val innerTube = InnerTube()
-    private val accountSwitcherClient = WEB.copy(loginSupported = true)
+    private val accountSwitcherClient =
+        WEB.copy(
+            loginSupported = true,
+            supportsCookieAuthentication = true,
+        )
     private val mutableAuthState = MutableStateFlow(PlaybackAuthState.EMPTY)
 
     val authStateFlow: StateFlow<PlaybackAuthState> = mutableAuthState.asStateFlow()

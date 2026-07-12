@@ -26,6 +26,7 @@ data class YouTubeClient(
     val packageName: String? = null,
     val friendlyName: String? = null,
     val loginSupported: Boolean = false,
+    val supportsCookieAuthentication: Boolean = false,
     val loginRequired: Boolean = false,
     val useSignatureTimestamp: Boolean = false,
     val useWebPoTokens: Boolean = false,
@@ -51,7 +52,7 @@ data class YouTubeClient(
             ),
         user =
             Context.User(
-                onBehalfOfUser = if (loginSupported) dataSyncId else null,
+                onBehalfOfUser = if (supportsCookieAuthentication) dataSyncId else null,
             ),
     )
 
@@ -95,6 +96,7 @@ data class YouTubeClient(
                 clientId = "67",
                 userAgent = USER_AGENT_WEB_REMIX,
                 loginSupported = true,
+                supportsCookieAuthentication = true,
                 useSignatureTimestamp = true,
                 useWebPoTokens = true,
             )
@@ -106,6 +108,7 @@ data class YouTubeClient(
                 clientId = "62",
                 userAgent = USER_AGENT_WEB,
                 loginSupported = true,
+                supportsCookieAuthentication = true,
                 loginRequired = true,
                 useSignatureTimestamp = true,
             )
@@ -117,6 +120,7 @@ data class YouTubeClient(
                 clientId = "7",
                 userAgent = "Mozilla/5.0(SMART-TV; Linux; Tizen 4.0.0.2) AppleWebkit/605.1.15 (KHTML, like Gecko) SamsungBrowser/9.2 TV Safari/605.1.15",
                 loginSupported = true,
+                supportsCookieAuthentication = true,
                 loginRequired = true,
                 useSignatureTimestamp = true,
             )
@@ -291,6 +295,7 @@ data class YouTubeClient(
                 userAgent = USER_AGENT_WEB_REMIX,
                 friendlyName = "Web Music (YouTube Music)",
                 loginSupported = true,
+                supportsCookieAuthentication = true,
                 useSignatureTimestamp = true,
                 useWebPoTokens = true,
             )
