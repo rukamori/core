@@ -10,9 +10,9 @@ package moe.rukamori.archivetune.innertube
 import io.ktor.http.URLBuilder
 import io.ktor.http.parseQueryString
 import kotlinx.coroutines.CancellationException
-import moe.rukamori.archivetune.morideobfuscator.MoriCipherRuntime
 import moe.rukamori.archivetune.innertube.models.YouTubeClient
 import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
+import moe.rukamori.archivetune.morideobfuscator.MoriCipherRuntime
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -132,8 +132,9 @@ object NewPipeUtils {
                 )
             }
 
-            val cipherString = format.signatureCipher ?: format.cipher
-                ?: return Result.failure(ParsingException("Could not find format url"))
+            val cipherString =
+                format.signatureCipher ?: format.cipher
+                    ?: return Result.failure(ParsingException("Could not find format url"))
 
             MoriCipherRuntime.resolveStreamUrl(videoId, cipherString).getOrNull()?.let { resolved ->
                 return Result.success(
