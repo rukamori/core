@@ -44,7 +44,7 @@ private fun MusicResponsiveListItemRenderer.belongsToPlaylist(playlistId: String
         return endpointPlaylistId == null || endpointPlaylistId == expectedPlaylistId
     }
     if (endpointPlaylistId != expectedPlaylistId) return false
-    return endpoint?.playlistSetVideoId?.isNotBlank() == true || endpoint?.index != null
+    return endpoint.playlistSetVideoId?.isNotBlank() == true || endpoint.index != null
 }
 
 internal fun MusicResponsiveListItemRenderer.toSongItem(albumColumnIndex: Int? = 2): SongItem? {

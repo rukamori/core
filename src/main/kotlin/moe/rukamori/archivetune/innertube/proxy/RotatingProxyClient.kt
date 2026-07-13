@@ -43,7 +43,7 @@ class RotatingProxyClient {
     fun get(url: String): String {
         val request = Request.Builder().url(url).build()
         return client.newCall(request).execute().use { response ->
-            response.body?.string() ?: error("Empty response body for $url")
+            response.body.string()
         }
     }
 
@@ -67,12 +67,11 @@ class RotatingProxyClient {
         return fetchClient.newCall(request).execute().use { response ->
             if (!response.isSuccessful) return emptyList()
             response.body
-                ?.string()
-                ?.lineSequence()
-                ?.mapNotNull(::parseProxyLine)
-                ?.take(MAX_PROXY_CANDIDATES)
-                ?.toList()
-                ?: emptyList()
+                .string()
+                .lineSequence()
+                .mapNotNull(::parseProxyLine)
+                .take(MAX_PROXY_CANDIDATES)
+                .toList()
         }
     }
 

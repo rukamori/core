@@ -2369,9 +2369,7 @@ object YouTube {
                     element.forEach { yieldAll(it.objectsNamed(name)) }
                 }
 
-                else -> {
-                    Unit
-                }
+                else -> {}
             }
         }
 
