@@ -56,13 +56,13 @@ data class SongItem(
     val chartPosition: Int? = null,
     val chartChange: String? = null,
     override val thumbnail: String,
-    override val thumbnailWidth: Int? = null,
-    override val thumbnailHeight: Int? = null,
     override val explicit: Boolean = false,
     val endpoint: WatchEndpoint? = null,
     val setVideoId: String? = null,
     val viewCountText: String? = null,
     val viewCount: Long? = null,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
 ) : YTItem() {
     override val shareLink: String
         get() = "https://music.youtube.com/watch?v=$id"
@@ -76,10 +76,10 @@ data class AlbumItem(
     val artists: List<Artist>?,
     val year: Int? = null,
     override val thumbnail: String,
-    override val thumbnailWidth: Int? = null,
-    override val thumbnailHeight: Int? = null,
     override val explicit: Boolean = false,
     val releaseType: AlbumReleaseType = AlbumReleaseType.ALBUM,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
 ) : YTItem() {
     override val shareLink: String
         get() = "https://music.youtube.com/playlist?list=$playlistId"
@@ -91,13 +91,13 @@ data class PlaylistItem(
     val author: Artist?,
     val songCountText: String?,
     override val thumbnail: String?,
-    override val thumbnailWidth: Int? = null,
-    override val thumbnailHeight: Int? = null,
     val playEndpoint: WatchEndpoint?,
     val shuffleEndpoint: WatchEndpoint?,
     val radioEndpoint: WatchEndpoint?,
     val isEditable: Boolean = false,
     val description: String? = null,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
 ) : YTItem() {
     override val explicit: Boolean
         get() = false
@@ -109,14 +109,14 @@ data class ArtistItem(
     override val id: String,
     override val title: String,
     override val thumbnail: String?,
-    override val thumbnailWidth: Int? = null,
-    override val thumbnailHeight: Int? = null,
     val channelId: String? = null,
     val playEndpoint: WatchEndpoint? = null,
     val shuffleEndpoint: WatchEndpoint?,
     val radioEndpoint: WatchEndpoint?,
     val subscriberCountText: String? = null,
     val monthlyListenerCountText: String? = null,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
 ) : YTItem() {
     override val explicit: Boolean
         get() = false

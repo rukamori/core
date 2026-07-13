@@ -28,6 +28,27 @@ data class AlbumPage(
     val otherVersions: List<AlbumItem>,
 ) {
     companion object {
+        private data class SelectedThumbnail(
+            val url: String,
+            val width: Int?,
+            val height: Int?,
+        )
+
+        private fun Thumbnail.toSelectedThumbnail() =
+            SelectedThumbnail(
+                url = normalizedUrl,
+                width = width,
+                height = height,
+            )
+
+        private fun AlbumItem.toSelectedThumbnail() =
+            SelectedThumbnail(
+                url = thumbnail,
+                width = thumbnailWidth,
+                height = thumbnailHeight,
+            )
+        }
+
         fun getPlaylistId(response: BrowseResponse): String? {
             response.microformat
                 ?.microformatDataRenderer
@@ -270,13 +291,16 @@ data class AlbumPage(
                         ?.videoId
                     ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
                     ?: return null
-            val thumbnail =
-                renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
-                    ?: renderer.thumbnail
-                        ?.musicAnimatedThumbnailRenderer
-                        ?.backupRenderer
-                        ?.getBestThumbnail()
-            val thumbnailUrl = thumbnail?.normalizedUrl ?: album?.thumbnail ?: return null
+            val selectedThumbnail =
+                (
+                    renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
+                        ?: renderer.thumbnail
+                            ?.musicAnimatedThumbnailRenderer
+                            ?.backupRenderer
+                            ?.getBestThumbnail()
+                )?.toSelectedThumbnail()
+                    ?: album?.toSelectedThumbnail()
+                    ?: return null
             val songAlbum =
                 album?.let {
                     Album(it.title, it.browseId)
@@ -306,9 +330,9 @@ data class AlbumPage(
                         },
                 album = songAlbum,
                 duration = duration,
-                thumbnail = thumbnailUrl,
-                thumbnailWidth = thumbnail?.width ?: album?.thumbnailWidth,
-                thumbnailHeight = thumbnail?.height ?: album?.thumbnailHeight,
+                thumbnail = selectedThumbnail.url,
+                thumbnailWidth = selectedThumbnail.width,
+                thumbnailHeight = selectedThumbnail.height,
                 explicit =
                     renderer.badges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"

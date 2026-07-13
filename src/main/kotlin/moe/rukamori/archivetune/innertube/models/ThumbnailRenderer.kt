@@ -25,7 +25,19 @@ data class ThumbnailRenderer(
         val thumbnailCrop: String?,
         val thumbnailScale: String?,
     ) {
-        fun getBestThumbnail() = thumbnail.thumbnails.lastOrNull()
+        fun getBestThumbnail(): Thumbnail? {
+            val thumbnails = thumbnail.thumbnails
+            return thumbnails
+                .filter { candidate ->
+                    candidate.normalizedUrl.isNotBlank() &&
+                        (candidate.width ?: 0) > 0 &&
+                        (candidate.height ?: 0) > 0
+                }.maxByOrNull { candidate ->
+                    val width = candidate.width ?: 0
+                    val height = candidate.height ?: 0
+                    width.toLong() * height.toLong()
+                } ?: thumbnails.lastOrNull { it.normalizedUrl.isNotBlank() }
+        }
 
         fun getThumbnailUrl() = getBestThumbnail()?.normalizedUrl
     }
