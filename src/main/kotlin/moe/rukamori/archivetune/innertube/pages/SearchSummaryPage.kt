@@ -64,8 +64,10 @@ data class SearchSummaryPage(
     companion object {
         fun fromMusicCardShelfRenderer(renderer: MusicCardShelfRenderer): YTItem? {
             val subtitle = renderer.subtitle.runs?.splitBySeparator()
+            val thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getBestThumbnail()
             return when {
                 renderer.onTap.watchEndpoint != null -> {
+                    val itemThumbnail = thumbnail ?: return null
                     SongItem(
                         id = renderer.onTap.watchEndpoint.videoId ?: return null,
                         title =
@@ -92,7 +94,9 @@ data class SearchSummaryPage(
                                 ?.firstOrNull()
                                 ?.text
                                 ?.parseTime(),
-                        thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = itemThumbnail.normalizedUrl,
+                        thumbnailWidth = itemThumbnail.width,
+                        thumbnailHeight = itemThumbnail.height,
                         explicit =
                             renderer.subtitleBadges?.find {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -101,13 +105,16 @@ data class SearchSummaryPage(
                 }
 
                 renderer.onTap.browseEndpoint?.isArtistEndpoint == true -> {
+                    val itemThumbnail = thumbnail ?: return null
                     ArtistItem(
                         id = renderer.onTap.browseEndpoint.browseId,
                         title =
                             renderer.title.runs
                                 ?.firstOrNull()
                                 ?.text ?: return null,
-                        thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = itemThumbnail.normalizedUrl,
+                        thumbnailWidth = itemThumbnail.width,
+                        thumbnailHeight = itemThumbnail.height,
                         shuffleEndpoint =
                             renderer.buttons
                                 .find { it.buttonRenderer.icon?.iconType == "MUSIC_SHUFFLE" }
@@ -124,6 +131,7 @@ data class SearchSummaryPage(
                 }
 
                 renderer.onTap.browseEndpoint?.isAlbumEndpoint == true -> {
+                    val itemThumbnail = thumbnail ?: return null
                     AlbumItem(
                         browseId = renderer.onTap.browseEndpoint.browseId,
                         playlistId =
@@ -145,7 +153,9 @@ data class SearchSummaryPage(
                                 )
                             } ?: return null,
                         year = null,
-                        thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = itemThumbnail.normalizedUrl,
+                        thumbnailWidth = itemThumbnail.width,
+                        thumbnailHeight = itemThumbnail.height,
                         explicit =
                             renderer.subtitleBadges?.find {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -154,6 +164,7 @@ data class SearchSummaryPage(
                 }
 
                 renderer.onTap.browseEndpoint?.isPlaylistEndpoint == true -> {
+                    val itemThumbnail = thumbnail ?: return null
                     PlaylistItem(
                         id =
                             renderer.onTap.browseEndpoint.browseId
@@ -171,7 +182,9 @@ data class SearchSummaryPage(
                                 name = renderer.subtitle.runs?.joinToString { it.text } ?: return null,
                             ),
                         songCountText = null,
-                        thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = itemThumbnail.normalizedUrl,
+                        thumbnailWidth = itemThumbnail.width,
+                        thumbnailHeight = itemThumbnail.height,
                         playEndpoint =
                             renderer.buttons
                                 .find { it.buttonRenderer.icon?.iconType == "PLAY_ARROW" }

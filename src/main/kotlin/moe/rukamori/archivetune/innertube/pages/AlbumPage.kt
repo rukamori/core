@@ -14,6 +14,7 @@ import moe.rukamori.archivetune.innertube.models.MusicResponsiveHeaderRenderer
 import moe.rukamori.archivetune.innertube.models.MusicResponsiveListItemRenderer
 import moe.rukamori.archivetune.innertube.models.SectionListRenderer
 import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.archivetune.innertube.models.Thumbnail
 import moe.rukamori.archivetune.innertube.models.getContinuation
 import moe.rukamori.archivetune.innertube.models.getItems
 import moe.rukamori.archivetune.innertube.models.oddElements
@@ -27,6 +28,27 @@ data class AlbumPage(
     val otherVersions: List<AlbumItem>,
 ) {
     companion object {
+        private data class SelectedThumbnail(
+            val url: String,
+            val width: Int?,
+            val height: Int?,
+        )
+
+        private fun Thumbnail.toSelectedThumbnail() =
+            SelectedThumbnail(
+                url = normalizedUrl,
+                width = width,
+                height = height,
+            )
+
+        private fun AlbumItem.toSelectedThumbnail() =
+            SelectedThumbnail(
+                url = thumbnail,
+                width = thumbnailWidth,
+                height = thumbnailHeight,
+            )
+        }
+
         fun getPlaylistId(response: BrowseResponse): String? {
             response.microformat
                 ?.microformatDataRenderer
@@ -75,24 +97,26 @@ data class AlbumPage(
                 ?.toIntOrNull()
         }
 
-        fun getThumbnail(response: BrowseResponse): String? =
-            response.background?.musicThumbnailRenderer?.getThumbnailUrl()
-                ?: getHeader(response)?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
+        fun getThumbnailInfo(response: BrowseResponse): Thumbnail? =
+            response.background?.musicThumbnailRenderer?.getBestThumbnail()
+                ?: getHeader(response)?.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
                 ?: response.header
                     ?.musicDetailHeaderRenderer
                     ?.thumbnail
                     ?.croppedSquareThumbnailRenderer
-                    ?.getThumbnailUrl()
+                    ?.getBestThumbnail()
                 ?: response.header
                     ?.musicVisualHeaderRenderer
                     ?.foregroundThumbnail
                     ?.musicThumbnailRenderer
-                    ?.getThumbnailUrl()
+                    ?.getBestThumbnail()
                 ?: response.header
                     ?.musicVisualHeaderRenderer
                     ?.thumbnail
                     ?.musicThumbnailRenderer
-                    ?.getThumbnailUrl()
+                    ?.getBestThumbnail()
+
+        fun getThumbnail(response: BrowseResponse): String? = getThumbnailInfo(response)?.normalizedUrl
 
         fun getArtists(response: BrowseResponse): List<Artist> {
             val artists =
@@ -267,13 +291,15 @@ data class AlbumPage(
                         ?.videoId
                     ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
                     ?: return null
-            val thumbnail =
-                renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
-                    ?: renderer.thumbnail
-                        ?.musicAnimatedThumbnailRenderer
-                        ?.backupRenderer
-                        ?.getThumbnailUrl()
-                    ?: album?.thumbnail
+            val selectedThumbnail =
+                (
+                    renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
+                        ?: renderer.thumbnail
+                            ?.musicAnimatedThumbnailRenderer
+                            ?.backupRenderer
+                            ?.getBestThumbnail()
+                )?.toSelectedThumbnail()
+                    ?: album?.toSelectedThumbnail()
                     ?: return null
             val songAlbum =
                 album?.let {
@@ -304,7 +330,9 @@ data class AlbumPage(
                         },
                 album = songAlbum,
                 duration = duration,
-                thumbnail = thumbnail,
+                thumbnail = selectedThumbnail.url,
+                thumbnailWidth = selectedThumbnail.width,
+                thumbnailHeight = selectedThumbnail.height,
                 explicit =
                     renderer.badges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"

@@ -32,6 +32,7 @@ data class ArtistItemsPage(
 ) {
     companion object {
         fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): SongItem? {
+            val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
             return SongItem(
                 id = renderer.playlistItemData?.videoId ?: return null,
                 title =
@@ -65,7 +66,9 @@ data class ArtistItemsPage(
                         ?.firstOrNull()
                         ?.text
                         ?.parseTime() ?: return null,
-                thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                thumbnail = thumbnail.normalizedUrl,
+                thumbnailWidth = thumbnail.width,
+                thumbnailHeight = thumbnail.height,
                 explicit =
                     renderer.badges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -83,6 +86,7 @@ data class ArtistItemsPage(
         fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): YTItem? {
             return when {
                 renderer.isAlbum -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     AlbumItem(
                         browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                         playlistId =
@@ -104,7 +108,9 @@ data class ArtistItemsPage(
                                 ?.lastOrNull()
                                 ?.text
                                 ?.toIntOrNull(),
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         explicit =
                             renderer.subtitleBadges?.find {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -114,6 +120,7 @@ data class ArtistItemsPage(
 
                 // Video
                 renderer.isSong -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     SongItem(
                         id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
                         title =
@@ -129,12 +136,15 @@ data class ArtistItemsPage(
                             } ?: return null,
                         album = null,
                         duration = null,
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         endpoint = renderer.navigationEndpoint.watchEndpoint,
                     )
                 }
 
                 renderer.isPlaylist -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     PlaylistItem(
                         id =
                             renderer.navigationEndpoint.browseEndpoint
@@ -156,7 +166,9 @@ data class ArtistItemsPage(
                                 ?.runs
                                 ?.getOrNull(4)
                                 ?.text,
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         playEndpoint =
                             renderer.thumbnailOverlay
                                 ?.musicItemThumbnailOverlayRenderer

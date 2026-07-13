@@ -15,6 +15,8 @@ sealed class YTItem {
     abstract val id: String
     abstract val title: String
     abstract val thumbnail: String?
+    abstract val thumbnailWidth: Int?
+    abstract val thumbnailHeight: Int?
     abstract val explicit: Boolean
     abstract val shareLink: String
 }
@@ -59,6 +61,8 @@ data class SongItem(
     val setVideoId: String? = null,
     val viewCountText: String? = null,
     val viewCount: Long? = null,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
 ) : YTItem() {
     override val shareLink: String
         get() = "https://music.youtube.com/watch?v=$id"
@@ -74,6 +78,8 @@ data class AlbumItem(
     override val thumbnail: String,
     override val explicit: Boolean = false,
     val releaseType: AlbumReleaseType = AlbumReleaseType.ALBUM,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
 ) : YTItem() {
     override val shareLink: String
         get() = "https://music.youtube.com/playlist?list=$playlistId"
@@ -90,6 +96,8 @@ data class PlaylistItem(
     val radioEndpoint: WatchEndpoint?,
     val isEditable: Boolean = false,
     val description: String? = null,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
 ) : YTItem() {
     override val explicit: Boolean
         get() = false
@@ -107,6 +115,8 @@ data class ArtistItem(
     val radioEndpoint: WatchEndpoint?,
     val subscriberCountText: String? = null,
     val monthlyListenerCountText: String? = null,
+    override val thumbnailWidth: Int? = null,
+    override val thumbnailHeight: Int? = null,
 ) : YTItem() {
     override val explicit: Boolean
         get() = false

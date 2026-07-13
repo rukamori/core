@@ -21,6 +21,7 @@ object SearchSuggestionPage {
     fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): YTItem? {
         return when {
             renderer.isSong -> {
+                val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                 SongItem(
                     id = renderer.playlistItemData?.videoId ?: return null,
                     title =
@@ -61,7 +62,9 @@ object SearchSuggestionPage {
                                 )
                             },
                     duration = null,
-                    thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                    thumbnail = thumbnail.normalizedUrl,
+                    thumbnailWidth = thumbnail.width,
+                    thumbnailHeight = thumbnail.height,
                     explicit =
                         renderer.badges?.find {
                             it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -70,6 +73,7 @@ object SearchSuggestionPage {
             }
 
             renderer.isArtist -> {
+                val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                 ArtistItem(
                     id = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
                     title =
@@ -81,7 +85,9 @@ object SearchSuggestionPage {
                             ?.firstOrNull()
                             ?.text
                             ?: return null,
-                    thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                    thumbnail = thumbnail.normalizedUrl,
+                    thumbnailWidth = thumbnail.width,
+                    thumbnailHeight = thumbnail.height,
                     shuffleEndpoint =
                         renderer.menu
                             ?.menuRenderer
@@ -102,6 +108,7 @@ object SearchSuggestionPage {
             }
 
             renderer.isAlbum -> {
+                val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                 val secondaryLine =
                     renderer.flexColumns
                         .getOrNull(1)
@@ -142,7 +149,9 @@ object SearchSuggestionPage {
                             ?.firstOrNull()
                             ?.text
                             ?.toIntOrNull(),
-                    thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                    thumbnail = thumbnail.normalizedUrl,
+                    thumbnailWidth = thumbnail.width,
+                    thumbnailHeight = thumbnail.height,
                     explicit =
                         renderer.badges?.find {
                             it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"

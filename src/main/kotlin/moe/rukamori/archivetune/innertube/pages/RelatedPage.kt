@@ -26,6 +26,7 @@ data class RelatedPage(
 ) {
     companion object {
         fun fromMusicResponsiveListItemRenderer(renderer: MusicResponsiveListItemRenderer): SongItem? {
+            val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
             return SongItem(
                 id = renderer.playlistItemData?.videoId ?: return null,
                 title =
@@ -51,7 +52,9 @@ data class RelatedPage(
                         )
                     },
                 duration = null,
-                thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                thumbnail = thumbnail.normalizedUrl,
+                thumbnailWidth = thumbnail.width,
+                thumbnailHeight = thumbnail.height,
                 explicit =
                     renderer.badges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -62,6 +65,7 @@ data class RelatedPage(
         fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): YTItem? {
             return when {
                 renderer.isAlbum -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     AlbumItem(
                         browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                         playlistId =
@@ -98,7 +102,9 @@ data class RelatedPage(
                                 ?.lastOrNull()
                                 ?.text
                                 ?.toIntOrNull(),
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         explicit =
                             renderer.subtitleBadges?.find {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -107,6 +113,7 @@ data class RelatedPage(
                 }
 
                 renderer.isPlaylist -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     PlaylistItem(
                         id =
                             renderer.navigationEndpoint.browseEndpoint
@@ -122,7 +129,9 @@ data class RelatedPage(
                                 ?.runs
                                 ?.lastOrNull()
                                 ?.text,
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         playEndpoint =
                             renderer.thumbnailOverlay
                                 ?.musicItemThumbnailOverlayRenderer
@@ -150,13 +159,16 @@ data class RelatedPage(
                 }
 
                 renderer.isArtist -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     ArtistItem(
                         id = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                         title =
                             renderer.title.runs
                                 ?.firstOrNull()
                                 ?.text ?: return null,
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         shuffleEndpoint =
                             renderer.menu
                                 ?.menuRenderer

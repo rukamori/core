@@ -24,6 +24,7 @@ data class LibraryPage(
         fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): YTItem? {
             return when {
                 renderer.isAlbum -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     val browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null
                     val playlistId =
                         renderer.thumbnailOverlay
@@ -57,9 +58,9 @@ data class LibraryPage(
                                 ?.lastOrNull()
                                 ?.text
                                 ?.toIntOrNull(),
-                        thumbnail =
-                            renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl()
-                                ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         explicit =
                             renderer.subtitleBadges?.find {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -68,6 +69,7 @@ data class LibraryPage(
                 }
 
                 renderer.isPlaylist -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     PlaylistItem(
                         id =
                             renderer.navigationEndpoint.browseEndpoint
@@ -83,7 +85,9 @@ data class LibraryPage(
                                 ?.runs
                                 ?.lastOrNull()
                                 ?.text,
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         playEndpoint =
                             renderer.thumbnailOverlay
                                 ?.musicItemThumbnailOverlayRenderer
@@ -117,13 +121,16 @@ data class LibraryPage(
                 }
 
                 renderer.isArtist -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     ArtistItem(
                         id = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                         title =
                             renderer.title.runs
                                 ?.lastOrNull()
                                 ?.text ?: return null,
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         shuffleEndpoint =
                             renderer.menu
                                 ?.menuRenderer
@@ -156,6 +163,7 @@ data class LibraryPage(
                 }
 
                 renderer.isArtist -> {
+                    val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     ArtistItem(
                         id = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
                         title =
@@ -167,9 +175,9 @@ data class LibraryPage(
                                 ?.firstOrNull()
                                 ?.text
                                 ?: return null,
-                        thumbnail =
-                            renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
-                                ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         shuffleEndpoint =
                             renderer.menu
                                 ?.menuRenderer

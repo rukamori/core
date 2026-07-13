@@ -481,7 +481,7 @@ object YouTube {
             val albumArtists = AlbumPage.getArtists(response).takeIf { it.isNotEmpty() }
             val albumYear = AlbumPage.getYear(response)
             val albumThumbnail =
-                AlbumPage.getThumbnail(response)
+                AlbumPage.getThumbnailInfo(response)
                     ?: throw IllegalStateException("Missing album thumbnail url for $browseId")
             val albumItem =
                 AlbumItem(
@@ -490,7 +490,9 @@ object YouTube {
                     title = albumTitle,
                     artists = albumArtists,
                     year = albumYear,
-                    thumbnail = albumThumbnail,
+                    thumbnail = albumThumbnail.normalizedUrl,
+                    thumbnailWidth = albumThumbnail.width,
+                    thumbnailHeight = albumThumbnail.height,
                     explicit = false, // TODO: Extract explicit badge for albums from YouTube response
                 )
             val inlineSongs = if (withSongs) AlbumPage.getSongs(response, albumItem) else emptyList()
@@ -612,6 +614,18 @@ object YouTube {
             val response = innerTube.browse(WEB_REMIX, browseId).body<BrowseResponse>()
             val immersiveHeader = response.header?.musicImmersiveHeaderRenderer
             val subscribeButtonRenderer = immersiveHeader?.subscriptionButton?.subscribeButtonRenderer
+            val artistThumbnail =
+                immersiveHeader?.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
+                    ?: response.header
+                        ?.musicVisualHeaderRenderer
+                        ?.foregroundThumbnail
+                        ?.musicThumbnailRenderer
+                        ?.getBestThumbnail()
+                    ?: response.header
+                        ?.musicDetailHeaderRenderer
+                        ?.thumbnail
+                        ?.musicThumbnailRenderer
+                        ?.getBestThumbnail()
 
             ArtistPage(
                 artist =
@@ -635,18 +649,9 @@ object YouTube {
                                     ?.runs
                                     ?.firstOrNull()
                                     ?.text!!,
-                        thumbnail =
-                            immersiveHeader?.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl()
-                                ?: response.header
-                                    ?.musicVisualHeaderRenderer
-                                    ?.foregroundThumbnail
-                                    ?.musicThumbnailRenderer
-                                    ?.getThumbnailUrl()
-                                ?: response.header
-                                    ?.musicDetailHeaderRenderer
-                                    ?.thumbnail
-                                    ?.musicThumbnailRenderer
-                                    ?.getThumbnailUrl(),
+                        thumbnail = artistThumbnail?.normalizedUrl,
+                        thumbnailWidth = artistThumbnail?.width,
+                        thumbnailHeight = artistThumbnail?.height,
                         channelId = subscribeButtonRenderer?.channelId,
                         playEndpoint =
                             response.contents
@@ -889,10 +894,7 @@ object YouTube {
             val thumbnail =
                 header.thumbnail
                     ?.musicThumbnailRenderer
-                    ?.thumbnail
-                    ?.thumbnails
-                    ?.lastOrNull()
-                    ?.normalizedUrl
+                    ?.getBestThumbnail()
                     ?: throw IllegalStateException("PLAYLIST_PRIVATE")
 
             val editable = base?.musicEditablePlaylistDetailHeaderRenderer != null
@@ -957,7 +959,9 @@ object YouTube {
                                 ?.runs
                                 ?.firstOrNull()
                                 ?.text,
-                        thumbnail = thumbnail,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         description = description,
                         playEndpoint =
                             header.buttons
@@ -1496,7 +1500,12 @@ object YouTube {
             items.forEachIndexed { index, item ->
                 if (item is ArtistItem) {
                     artist(item.id).getOrNull()?.artist?.let { fetchedArtist ->
-                        items[index] = fetchedArtist.copy(thumbnail = item.thumbnail)
+                        items[index] =
+                            fetchedArtist.copy(
+                                thumbnail = item.thumbnail,
+                                thumbnailWidth = item.thumbnailWidth,
+                                thumbnailHeight = item.thumbnailHeight,
+                            )
                     }
                 }
             }
@@ -1651,11 +1660,14 @@ object YouTube {
                             ?.musicResponsiveListItemFlexColumnRenderer
                             ?.text
 
+                    val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     SongItem(
                         id = renderer.playlistItemData.videoId,
                         title = title,
                         artists = artists,
-                        thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         explicit =
                             renderer.badges?.any {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -1685,6 +1697,7 @@ object YouTube {
             when {
                 renderer.isSong -> {
                     val subtitle = renderer.subtitle?.runs ?: return null
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     SongItem(
                         id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
                         title =
@@ -1697,7 +1710,9 @@ object YouTube {
                                     Artist(name = it.text, id = id)
                                 }
                             },
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         explicit =
                             renderer.subtitleBadges?.any {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -1706,6 +1721,7 @@ object YouTube {
                 }
 
                 renderer.isAlbum -> {
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     AlbumItem(
                         browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                         playlistId =
@@ -1732,7 +1748,9 @@ object YouTube {
                                 ?.lastOrNull()
                                 ?.text
                                 ?.toIntOrNull(),
-                        thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl() ?: return null,
+                        thumbnail = thumbnail.normalizedUrl,
+                        thumbnailWidth = thumbnail.width,
+                        thumbnailHeight = thumbnail.height,
                         explicit =
                             renderer.subtitleBadges?.any {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
