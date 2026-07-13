@@ -47,7 +47,6 @@ data class AlbumPage(
                 width = thumbnailWidth,
                 height = thumbnailHeight,
             )
-        }
 
         fun getPlaylistId(response: BrowseResponse): String? {
             response.microformat
