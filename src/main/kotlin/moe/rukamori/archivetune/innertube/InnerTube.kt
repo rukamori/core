@@ -156,6 +156,7 @@ class InnerTube {
 
             engine {
                 config {
+                    addInterceptor(NetworkGatekeeper)
                     dns(this@InnerTube.dns)
                     val sel = this@InnerTube.proxySelector
                     if (sel != null) {
