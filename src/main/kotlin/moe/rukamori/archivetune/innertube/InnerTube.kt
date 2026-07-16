@@ -788,6 +788,79 @@ class InnerTube {
         }
     }
 
+    suspend fun startPlaylistCoverUpload(
+        client: YouTubeClient,
+        contentLength: Int,
+    ) = withRetry {
+        httpClient.post("https://music.youtube.com/playlist_image_upload/playlist_custom_thumbnail") {
+            ytClient(client, setLogin = true)
+            headers {
+                append("X-Goog-Upload-Command", "start")
+                append("X-Goog-Upload-Protocol", "resumable")
+                append("X-Goog-Upload-Header-Content-Length", contentLength.toString())
+            }
+        }
+    }
+
+    suspend fun uploadPlaylistCover(
+        client: YouTubeClient,
+        uploadId: String,
+        image: ByteArray,
+    ) = withRetry {
+        httpClient.post("https://music.youtube.com/playlist_image_upload/playlist_custom_thumbnail") {
+            ytClient(client, setLogin = true)
+            parameter("upload_id", uploadId)
+            parameter("upload_protocol", "resumable")
+            headers {
+                append("X-Goog-Upload-Command", "upload, finalize")
+                append("X-Goog-Upload-Offset", "0")
+            }
+            contentType(ContentType.Application.OctetStream)
+            setBody(image)
+        }
+    }
+
+    suspend fun setPlaylistCustomCover(
+        client: YouTubeClient,
+        playlistId: String,
+        encryptedBlobId: String,
+    ) = withRetry {
+        httpClient.post("browse/edit_playlist") {
+            ytClient(client, setLogin = true)
+            setBody(
+                EditPlaylistBody(
+                    context = client.toContext(locale, visitorData, dataSyncId),
+                    playlistId = playlistId,
+                    actions =
+                        listOf(
+                            Action.SetCustomThumbnailAction(
+                                addedCustomThumbnail =
+                                    Action.SetCustomThumbnailAction.AddedCustomThumbnail(
+                                        playlistScottyEncryptedBlobId = encryptedBlobId,
+                                    ),
+                            ),
+                        ),
+                ),
+            )
+        }
+    }
+
+    suspend fun removePlaylistCustomCover(
+        client: YouTubeClient,
+        playlistId: String,
+    ) = withRetry {
+        httpClient.post("browse/edit_playlist") {
+            ytClient(client, setLogin = true)
+            setBody(
+                EditPlaylistBody(
+                    context = client.toContext(locale, visitorData, dataSyncId),
+                    playlistId = playlistId,
+                    actions = listOf(Action.RemoveCustomThumbnailAction()),
+                ),
+            )
+        }
+    }
+
     suspend fun deletePlaylist(
         client: YouTubeClient,
         playlistId: String,

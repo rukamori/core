@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -58,9 +59,11 @@ import moe.rukamori.archivetune.innertube.models.response.AccountMenuResponse
 import moe.rukamori.archivetune.innertube.models.response.AddItemYouTubePlaylistResponse
 import moe.rukamori.archivetune.innertube.models.response.BrowseResponse
 import moe.rukamori.archivetune.innertube.models.response.CreatePlaylistResponse
+import moe.rukamori.archivetune.innertube.models.response.EditPlaylistResponse
 import moe.rukamori.archivetune.innertube.models.response.GetQueueResponse
 import moe.rukamori.archivetune.innertube.models.response.GetSearchSuggestionsResponse
 import moe.rukamori.archivetune.innertube.models.response.GetTranscriptResponse
+import moe.rukamori.archivetune.innertube.models.response.ImageUploadResponse
 import moe.rukamori.archivetune.innertube.models.response.NextResponse
 import moe.rukamori.archivetune.innertube.models.response.PlayerResponse
 import moe.rukamori.archivetune.innertube.models.response.SearchResponse
@@ -104,6 +107,7 @@ object YouTube {
     private const val BROWSE_ID_EXPLORE = "FEmusic_explore"
     private const val BROWSE_ID_NEW_RELEASE_ALBUMS = "FEmusic_new_releases_albums"
     private const val BROWSE_ID_MOODS_AND_GENRES = "FEmusic_moods_and_genres"
+    private val playlistCoverResponseJson = Json { ignoreUnknownKeys = true }
 
     private val innerTube = InnerTube()
     private val accountSwitcherClient =
@@ -1985,12 +1989,64 @@ object YouTube {
         }
     }
 
+    suspend fun uploadCustomPlaylistCover(
+        playlistId: String,
+        image: ByteArray,
+    ): Result<String> =
+        runCatching {
+            require(playlistId.isNotBlank())
+            require(image.isNotEmpty())
+
+            withPlaylistMutationAuthRecovery {
+                val uploadId =
+                    innerTube
+                        .startPlaylistCoverUpload(WEB_REMIX, image.size)
+                        .headers["x-guploader-uploadid"]
+                        ?.takeIf(String::isNotBlank)
+                        ?: throw IllegalStateException("Playlist cover upload session was not created")
+                val uploadResponse = innerTube.uploadPlaylistCover(WEB_REMIX, uploadId, image)
+                val encryptedBlobId =
+                    playlistCoverResponseJson
+                        .decodeFromString<ImageUploadResponse>(uploadResponse.bodyAsText())
+                        .encryptedBlobId
+                        .takeIf(String::isNotBlank)
+                        ?: throw IllegalStateException("Playlist cover upload returned an empty blob id")
+                val editResponse =
+                    innerTube
+                        .setPlaylistCustomCover(WEB_REMIX, playlistId, encryptedBlobId)
+                        .body<EditPlaylistResponse>()
+
+                editResponse.playlistCoverUrl()
+                    ?: throw IllegalStateException("Playlist cover update returned no thumbnail")
+            }
+        }
+
+    suspend fun removeCustomPlaylistCover(playlistId: String): Result<String?> =
+        runCatching {
+            require(playlistId.isNotBlank())
+            withPlaylistMutationAuthRecovery {
+                innerTube
+                    .removePlaylistCustomCover(WEB_REMIX, playlistId)
+                    .body<EditPlaylistResponse>()
+                    .playlistCoverUrl()
+            }
+        }
+
     suspend fun deletePlaylist(playlistId: String) =
         runCatching {
             withPlaylistMutationAuthRecovery {
                 innerTube.deletePlaylist(WEB_REMIX, playlistId)
             }
         }
+
+    private fun EditPlaylistResponse.playlistCoverUrl(): String? =
+        newHeader
+            ?.musicEditablePlaylistDetailHeaderRenderer
+            ?.header
+            ?.musicResponsiveHeaderRenderer
+            ?.thumbnail
+            ?.musicThumbnailRenderer
+            ?.getThumbnailUrl()
 
     suspend fun player(
         videoId: String,
