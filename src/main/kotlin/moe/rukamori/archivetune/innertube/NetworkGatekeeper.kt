@@ -24,7 +24,11 @@ object NetworkGatekeeper : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         if (connectionBlocked.get()) {
-            throw IOException("Connection Blocked by Gatekeeper")
+            throw IOException(
+                "Connection blocked by ArchiveTune Remote. This app could not be verified as an " +
+                    "official ArchiveTune build. Install an official build from " +
+                    "https://github.com/rukamori/ArchiveTune or https://t.me/ArchiveTuneGC.",
+            )
         }
         return chain.proceed(chain.request())
     }
