@@ -101,6 +101,7 @@ data class SearchSummaryPage(
                             renderer.subtitleBadges?.find {
                                 it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                             } != null,
+                        endpoint = renderer.onTap.watchEndpoint,
                     )
                 }
 

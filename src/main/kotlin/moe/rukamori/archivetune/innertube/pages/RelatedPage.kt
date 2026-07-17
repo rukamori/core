@@ -59,6 +59,14 @@ data class RelatedPage(
                     renderer.badges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                     } != null,
+                endpoint =
+                    renderer.navigationEndpoint?.anyWatchEndpoint
+                        ?: renderer.overlay
+                            ?.musicItemThumbnailOverlayRenderer
+                            ?.content
+                            ?.musicPlayButtonRenderer
+                            ?.playNavigationEndpoint
+                            ?.anyWatchEndpoint,
             )
         }
 

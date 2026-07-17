@@ -79,7 +79,8 @@ data class ArtistItemsPage(
                         ?.content
                         ?.musicPlayButtonRenderer
                         ?.playNavigationEndpoint
-                        ?.watchEndpoint,
+                        ?.anyWatchEndpoint
+                        ?: renderer.navigationEndpoint?.anyWatchEndpoint,
             )
         }
 

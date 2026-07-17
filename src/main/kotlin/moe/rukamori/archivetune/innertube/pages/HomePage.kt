@@ -137,6 +137,7 @@ data class HomePage(
                                 renderer.subtitleBadges?.any {
                                     it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
                                 } == true,
+                            endpoint = renderer.navigationEndpoint.anyWatchEndpoint,
                         )
                     }
 
