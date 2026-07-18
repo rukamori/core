@@ -10,18 +10,18 @@ package moe.rukamori.archivetune.innertube.models.response
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class AddItemYouTubePlaylistResponse(
-    val status: String,
-    val playlistEditResults: List<PlaylistEditResult>,
+public data class AddItemYouTubePlaylistResponse(
+    public val status: String,
+    public val playlistEditResults: List<PlaylistEditResult> = emptyList(),
 ) {
     @Serializable
-    data class PlaylistEditResult(
-        val playlistEditVideoAddedResultData: PlaylistEditVideoAddedResultData,
+    public data class PlaylistEditResult(
+        public val playlistEditVideoAddedResultData: PlaylistEditVideoAddedResultData? = null,
     ) {
         @Serializable
-        data class PlaylistEditVideoAddedResultData(
-            val setVideoId: String,
-            val videoId: String,
+        public data class PlaylistEditVideoAddedResultData(
+            public val setVideoId: String? = null,
+            public val videoId: String? = null,
         )
     }
 }
