@@ -8,6 +8,7 @@
 package moe.rukamori.archivetune.innertube.utils
 
 import moe.rukamori.archivetune.innertube.YouTube
+import moe.rukamori.archivetune.innertube.models.distinctByPlaylistEntry
 import moe.rukamori.archivetune.innertube.pages.LibraryPage
 import moe.rukamori.archivetune.innertube.pages.PlaylistContinuationPage
 import moe.rukamori.archivetune.innertube.pages.PlaylistPage
@@ -60,7 +61,7 @@ internal suspend fun completePlaylistPage(
     }
 
     return page.copy(
-        songs = songs,
+        songs = songs.distinctByPlaylistEntry(),
         songsContinuation = null,
         continuation = null,
     )
