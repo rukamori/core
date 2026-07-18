@@ -68,6 +68,9 @@ data class SongItem(
         get() = "https://music.youtube.com/watch?v=$id"
 }
 
+fun Iterable<SongItem>.distinctByPlaylistEntry(): List<SongItem> =
+    distinctBy { song -> song.setVideoId?.takeIf(String::isNotBlank) ?: song.id }
+
 data class AlbumItem(
     val browseId: String,
     val playlistId: String,
