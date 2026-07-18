@@ -52,6 +52,7 @@ import moe.rukamori.archivetune.innertube.models.YouTubeClient
 import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB
 import moe.rukamori.archivetune.innertube.models.YouTubeClient.Companion.WEB_REMIX
 import moe.rukamori.archivetune.innertube.models.YouTubeLocale
+import moe.rukamori.archivetune.innertube.models.distinctByPlaylistEntry
 import moe.rukamori.archivetune.innertube.models.getContinuation
 import moe.rukamori.archivetune.innertube.models.getItems
 import moe.rukamori.archivetune.innertube.models.oddElements
@@ -991,7 +992,7 @@ object YouTube {
                 songs =
                     songContents.getItems().mapNotNull {
                         PlaylistPage.fromMusicResponsiveListItemRenderer(it, playlistId)
-                    },
+                    }.distinctByPlaylistEntry(),
                 songsContinuation = songsContinuation,
                 continuation =
                     secondarySection?.continuations?.getContinuation()
@@ -2739,7 +2740,7 @@ internal fun playlistContinuationPageFromResponse(
                         .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
                         .mapNotNull { renderer ->
                             PlaylistPage.fromMusicResponsiveListItemRenderer(renderer, playlistId)
-                        },
+                        }.distinctByPlaylistEntry(),
             )
         }
 
