@@ -11,6 +11,7 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -108,6 +109,7 @@ object YouTube {
     private const val BROWSE_ID_EXPLORE = "FEmusic_explore"
     private const val BROWSE_ID_NEW_RELEASE_ALBUMS = "FEmusic_new_releases_albums"
     private const val BROWSE_ID_MOODS_AND_GENRES = "FEmusic_moods_and_genres"
+    private const val PLAYLIST_EDIT_STATUS_SUCCEEDED = "STATUS_SUCCEEDED"
     private val playlistCoverResponseJson = Json { ignoreUnknownKeys = true }
 
     private val innerTube = InnerTube()
@@ -1838,32 +1840,42 @@ object YouTube {
         return ""
     }
 
-    suspend fun addToPlaylist(
+    public suspend fun addToPlaylist(
         playlistId: String,
         videoId: String,
-    ) = runCatching {
-        val result =
+    ) = runCatchingCancellable {
+        val response =
             withPlaylistMutationAuthRecovery {
                 innerTube
                     .addToPlaylist(WEB_REMIX, playlistId, videoId)
                     .body<AddItemYouTubePlaylistResponse>()
-            }.playlistEditResults
-                .firstOrNull { result ->
-                    result.playlistEditVideoAddedResultData.videoId == videoId
-                }?.playlistEditVideoAddedResultData
-        require(result?.setVideoId?.isNotBlank() == true) {
+            }.requireSuccessfulPlaylistEdit()
+        val responseSetVideoId =
+            response.playlistEditResults
+                .asSequence()
+                .mapNotNull(AddItemYouTubePlaylistResponse.PlaylistEditResult::playlistEditVideoAddedResultData)
+                .firstOrNull { result -> result.videoId == videoId }
+                ?.setVideoId
+                ?.takeIf(String::isNotBlank)
+        val setVideoId =
+            responseSetVideoId
+                ?: playlistEntrySetVideoIds(playlistId, videoId)
+                    .getOrThrow()
+                    .lastOrNull()
+                    ?.takeIf(String::isNotBlank)
+        requireNotNull(setVideoId) {
             "Playlist edit did not confirm added video $videoId"
         }
-        result.setVideoId
+        setVideoId
     }
 
-    suspend fun addSongsToPlaylist(
+    public suspend fun addSongsToPlaylist(
         playlistId: String,
         videoIds: List<String>,
         batchSize: Int = DEFAULT_PLAYLIST_EDIT_BATCH_SIZE,
         onProgress: (completedSongs: Int, totalSongs: Int) -> Unit = { _, _ -> },
     ): Result<List<String?>> =
-        runCatching {
+        runCatchingCancellable {
             require(batchSize > 0) { "batchSize must be positive" }
             if (videoIds.isEmpty()) return@runCatching emptyList()
 
@@ -1874,12 +1886,12 @@ object YouTube {
 
             videoIds.chunked(batchSize).forEach { batch ->
                 val batchResponse =
-                    runCatching {
+                    runCatchingCancellable {
                         withPlaylistMutationAuthRecovery {
                             innerTube
                                 .addSongsToPlaylist(WEB_REMIX, playlistId, batch)
                                 .body<AddItemYouTubePlaylistResponse>()
-                        }
+                        }.requireSuccessfulPlaylistEdit()
                     }
 
                 if (batchResponse.isSuccess) {
@@ -1887,15 +1899,20 @@ object YouTube {
                         batchResponse
                             .getOrThrow()
                             .playlistEditResults
-                            .map { it.playlistEditVideoAddedResultData }
-                            .filter { result -> result.setVideoId.isNotBlank() }
-                            .associateBy { it.videoId }
+                            .asSequence()
+                            .mapNotNull(AddItemYouTubePlaylistResponse.PlaylistEditResult::playlistEditVideoAddedResultData)
+                            .mapNotNull { result ->
+                                val resultVideoId = result.videoId?.takeIf(String::isNotBlank)
+                                val resultSetVideoId = result.setVideoId?.takeIf(String::isNotBlank)
+                                if (resultVideoId == null || resultSetVideoId == null) {
+                                    null
+                                } else {
+                                    resultVideoId to resultSetVideoId
+                                }
+                            }.toMap()
 
                     batch.forEach { videoId ->
-                        val setVideoId =
-                            resultByVideoId[videoId]?.setVideoId
-                                ?: throw IllegalStateException("Playlist edit did not confirm added video $videoId")
-                        setVideoIds += setVideoId
+                        setVideoIds += resultByVideoId[videoId]
                         completedSongs += 1
                     }
                 } else if (batch.size == 1) {
@@ -1911,6 +1928,22 @@ object YouTube {
             }
 
             setVideoIds
+        }
+
+    private fun AddItemYouTubePlaylistResponse.requireSuccessfulPlaylistEdit(): AddItemYouTubePlaylistResponse {
+        check(status == PLAYLIST_EDIT_STATUS_SUCCEEDED) {
+            "Playlist edit failed with status $status"
+        }
+        return this
+    }
+
+    private inline fun <T> runCatchingCancellable(block: () -> T): Result<T> =
+        try {
+            Result.success(block())
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Throwable) {
+            Result.failure(failure)
         }
 
     suspend fun addPlaylistToPlaylist(
