@@ -1877,7 +1877,7 @@ object YouTube {
     ): Result<List<String?>> =
         runCatchingCancellable {
             require(batchSize > 0) { "batchSize must be positive" }
-            if (videoIds.isEmpty()) return@runCatching emptyList()
+            if (videoIds.isEmpty()) return@runCatchingCancellable emptyList<String?>()
 
             val setVideoIds = ArrayList<String?>(videoIds.size)
             val totalSongs = videoIds.size
