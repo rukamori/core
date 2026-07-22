@@ -188,7 +188,6 @@ class InnerTube {
         setLogin: Boolean = false,
         authState: PlaybackAuthState = currentAuthState(),
         includeVisitorData: Boolean = true,
-        includeAccountPageId: Boolean = true,
     ) {
         val requestOrigin = client.requestOrigin()
         val requestReferer = client.requestReferer()
@@ -210,9 +209,6 @@ class InnerTube {
                     val sapisidHash = sha1("$currentTime $loginCookieValue $requestOrigin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_$sapisidHash")
                     append("X-Goog-AuthUser", "0")
-                    if (includeAccountPageId) {
-                        authState.dataSyncId?.let { append("X-Goog-PageId", it) }
-                    }
                 }
             }
         }
@@ -244,7 +240,6 @@ class InnerTube {
                     val sapisidHash = sha1("$currentTime $loginCookieValue $requestOrigin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_$sapisidHash")
                     append("X-Goog-AuthUser", "0")
-                    authState.dataSyncId?.let { append("X-Goog-PageId", it) }
                 }
             }
         }
@@ -361,12 +356,7 @@ class InnerTube {
         authState: PlaybackAuthState,
         includeDataSyncId: Boolean,
     ) = httpClient.post(client.requestApiUrl("player")) {
-        ytClient(
-            client = client,
-            setLogin = setLogin,
-            authState = authState,
-            includeAccountPageId = includeDataSyncId,
-        )
+        ytClient(client = client, setLogin = setLogin, authState = authState)
         setBody(
             PlayerBody(
                 context =
