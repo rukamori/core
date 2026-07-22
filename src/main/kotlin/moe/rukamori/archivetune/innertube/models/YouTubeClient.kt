@@ -52,7 +52,7 @@ data class YouTubeClient(
             ),
         user =
             Context.User(
-                onBehalfOfUser = if (supportsCookieAuthentication) dataSyncId else null,
+                onBehalfOfUser = if (supportsCookieAuthentication) dataSyncId.delegatedSessionIdOrNull() else null,
             ),
     )
 
@@ -366,4 +366,12 @@ data class YouTubeClient(
                 useSignatureTimestamp = false,
             )
     }
+}
+
+private fun String?.delegatedSessionIdOrNull(): String? {
+    val value = this?.trim()?.takeIf(String::isNotBlank) ?: return null
+    val separatorIndex = value.indexOf("||")
+    if (separatorIndex <= 0 || separatorIndex + 2 >= value.length) return null
+
+    return value.substring(0, separatorIndex).trim().takeIf(String::isNotBlank)
 }
