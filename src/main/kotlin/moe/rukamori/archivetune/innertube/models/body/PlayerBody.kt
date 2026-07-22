@@ -15,6 +15,8 @@ data class PlayerBody(
     val context: Context,
     val videoId: String,
     val playlistId: String?,
+    val racyCheckOk: Boolean = true,
+    val contentCheckOk: Boolean = true,
     val playbackContext: PlaybackContext? = null,
     val serviceIntegrityDimensions: ServiceIntegrityDimensions? = null,
 ) {
@@ -24,7 +26,10 @@ data class PlayerBody(
     ) {
         @Serializable
         data class ContentPlaybackContext(
-            val signatureTimestamp: Int,
+            val signatureTimestamp: Int? = null,
+            val vis: Int = 0,
+            val splay: Boolean = false,
+            val lactMilliseconds: String = "-1",
         )
     }
 
