@@ -188,6 +188,7 @@ class InnerTube {
         setLogin: Boolean = false,
         authState: PlaybackAuthState = currentAuthState(),
         includeVisitorData: Boolean = true,
+        includeAccountPageId: Boolean = true,
     ) {
         val requestOrigin = client.requestOrigin()
         val requestReferer = client.requestReferer()
@@ -208,6 +209,10 @@ class InnerTube {
                     val currentTime = System.currentTimeMillis() / 1000
                     val sapisidHash = sha1("$currentTime $loginCookieValue $requestOrigin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_$sapisidHash")
+                    append("X-Goog-AuthUser", "0")
+                    if (includeAccountPageId) {
+                        authState.dataSyncId?.let { append("X-Goog-PageId", it) }
+                    }
                 }
             }
         }
@@ -238,6 +243,8 @@ class InnerTube {
                     val currentTime = System.currentTimeMillis() / 1000
                     val sapisidHash = sha1("$currentTime $loginCookieValue $requestOrigin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_$sapisidHash")
+                    append("X-Goog-AuthUser", "0")
+                    authState.dataSyncId?.let { append("X-Goog-PageId", it) }
                 }
             }
         }
@@ -317,7 +324,7 @@ class InnerTube {
         setLogin: Boolean = true,
         authState: PlaybackAuthState = currentAuthState(),
     ) = withRetry {
-        val includeDataSyncId = setLogin && client.supportsCookieAuthentication && !authState.dataSyncId.isNullOrBlank()
+        val includeDataSyncId = setLogin && client.supportsCookieAuthentication && authState.hasPlaybackLoginContext
         try {
             executePlayerRequest(
                 client = client,
@@ -337,7 +344,7 @@ class InnerTube {
                 playlistId = playlistId,
                 signatureTimestamp = signatureTimestamp,
                 poToken = poToken,
-                setLogin = false,
+                setLogin = setLogin,
                 authState = authState,
                 includeDataSyncId = false,
             )
@@ -354,7 +361,12 @@ class InnerTube {
         authState: PlaybackAuthState,
         includeDataSyncId: Boolean,
     ) = httpClient.post(client.requestApiUrl("player")) {
-        ytClient(client, setLogin = setLogin, authState = authState)
+        ytClient(
+            client = client,
+            setLogin = setLogin,
+            authState = authState,
+            includeAccountPageId = includeDataSyncId,
+        )
         setBody(
             PlayerBody(
                 context =
@@ -378,7 +390,7 @@ class InnerTube {
                 videoId = videoId,
                 playlistId = playlistId,
                 playbackContext =
-                    if (client.useSignatureTimestamp && signatureTimestamp != null) {
+                    if (client.useSignatureTimestamp) {
                         PlayerBody.PlaybackContext(
                             PlayerBody.PlaybackContext.ContentPlaybackContext(
                                 signatureTimestamp,
