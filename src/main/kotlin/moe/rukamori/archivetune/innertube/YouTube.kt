@@ -2452,7 +2452,7 @@ object YouTube {
     private fun parseAccountChannel(renderer: JsonObject): AccountChannel? {
         val isDisabled = renderer.booleanValue("isDisabled") ?: false
         val hasChannel = renderer.booleanValue("hasChannel") ?: true
-        if (isDisabled || !hasChannel) return null
+        if (isDisabled) return null
 
         val dataSyncId = renderer.parseAccountChannelDataSyncId() ?: return null
 
