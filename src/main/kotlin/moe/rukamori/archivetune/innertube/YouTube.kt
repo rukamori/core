@@ -2488,9 +2488,12 @@ object YouTube {
                         val hasChannel = renderer.booleanValue("hasChannel") ?: true
                         if (isDisabled || !hasChannel) return@mapNotNull null
 
-                        renderer.parseAccountChannelDataSyncId()?.let { dataSyncId ->
-                            dataSyncId to (renderer.booleanValue("isSelected") ?: false)
-                        }
+                        renderer["serviceEndpoint"]
+                            ?.findStringValue(setOf("datasyncId", "dataSyncId"))
+                            ?.normalizeAccountChannelDataSyncId()
+                            ?.let { dataSyncId ->
+                                dataSyncId to (renderer.booleanValue("isSelected") ?: false)
+                            }
                     }.sortedByDescending { (_, isSelected) -> isSelected }
                     .firstOrNull()
                     ?.first
