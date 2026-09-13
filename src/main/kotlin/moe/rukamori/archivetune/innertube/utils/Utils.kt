@@ -7,6 +7,7 @@
 
 package moe.rukamori.archivetune.innertube.utils
 
+import kotlinx.coroutines.CancellationException
 import moe.rukamori.archivetune.innertube.YouTube
 import moe.rukamori.archivetune.innertube.models.distinctByPlaylistEntry
 import moe.rukamori.archivetune.innertube.pages.LibraryPage
@@ -14,18 +15,16 @@ import moe.rukamori.archivetune.innertube.pages.PlaylistContinuationPage
 import moe.rukamori.archivetune.innertube.pages.PlaylistPage
 import java.security.MessageDigest
 
-// Cap for LibraryPage.continued() (e.g. FEmusic_liked_playlists / generated mixes)
-// to prevent hundreds of sequential continuation requests on the home screen.
-private const val LIBRARY_COMPLETION_MAX_REQUESTS = 50
+private const val LIBRARY_COMPLETION_MAX_REQUESTS = 500
 
 @JvmName("completedLibrary")
 suspend fun Result<PlaylistPage>.completed(): Result<PlaylistPage> =
     runCatching {
         val page = getOrThrow()
         completePlaylistPage(page) { continuation ->
-            YouTube.playlistContinuation(continuation, page.playlist.id).getOrNull()
+            YouTube.playlistContinuation(continuation, page.playlist.id).getOrThrow()
         }
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 
 internal suspend fun completePlaylistPage(
     page: PlaylistPage,
@@ -38,28 +37,20 @@ internal suspend fun completePlaylistPage(
     val seenContinuations = mutableSetOf<String>()
     var requestCount = 0
     val maxRequests = 500
-    var consecutiveEmptyResponses = 0
 
     while (continuation != null && requestCount < maxRequests) {
-        if (continuation in seenContinuations) {
-            break
-        }
-        seenContinuations.add(continuation)
+        check(seenContinuations.add(continuation)) { "Repeated playlist continuation" }
         requestCount++
 
-        val continuationPage = fetchContinuationPage(continuation) ?: break
-
-        if (continuationPage.songs.isEmpty()) {
-            consecutiveEmptyResponses++
-            if (consecutiveEmptyResponses >= 2) break
-        } else {
-            consecutiveEmptyResponses = 0
-            songs += continuationPage.songs
+        val continuationPage = checkNotNull(fetchContinuationPage(continuation)) {
+            "Playlist continuation could not be loaded"
         }
+        songs += continuationPage.songs
 
         continuation = continuationPage.continuation.normalizedContinuation()
     }
 
+    check(continuation == null) { "Playlist continuation limit exceeded" }
     return page.copy(
         songs = songs.distinctByPlaylistEntry(),
         songsContinuation = null,
@@ -72,36 +63,24 @@ suspend fun Result<LibraryPage>.completed(): Result<LibraryPage> =
     runCatching {
         val page = getOrThrow()
         val items = page.items.toMutableList()
-        var continuation = page.continuation
+        var continuation = page.continuation.normalizedContinuation()
         val seenContinuations = mutableSetOf<String>()
         var requestCount = 0
         val maxRequests = LIBRARY_COMPLETION_MAX_REQUESTS
-        var consecutiveEmptyResponses = 0
 
         while (continuation != null && requestCount < maxRequests) {
-            if (continuation in seenContinuations) {
-                break
-            }
-            seenContinuations.add(continuation)
+            check(seenContinuations.add(continuation)) { "Repeated library continuation" }
             requestCount++
-
-            val continuationPage = YouTube.libraryContinuation(continuation).getOrNull() ?: break
-
-            if (continuationPage.items.isEmpty()) {
-                consecutiveEmptyResponses++
-                if (consecutiveEmptyResponses >= 2) break
-            } else {
-                consecutiveEmptyResponses = 0
-                items += continuationPage.items
-            }
-
-            continuation = continuationPage.continuation
+            val continuationPage = YouTube.libraryContinuation(continuation).getOrThrow()
+            items += continuationPage.items
+            continuation = continuationPage.continuation.normalizedContinuation()
         }
+        check(continuation == null) { "Library continuation limit exceeded" }
         LibraryPage(
-            items = items,
+            items = items.distinctBy { it.id },
             continuation = null,
         )
-    }
+    }.onFailure { if (it is CancellationException) throw it }
 
 fun ByteArray.toHex(): String = joinToString(separator = "") { eachByte -> "%02x".format(eachByte) }
 
