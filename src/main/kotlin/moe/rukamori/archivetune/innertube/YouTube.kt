@@ -1435,21 +1435,25 @@ object YouTube {
                     setLogin = true,
                 ).body<BrowseResponse>()
 
-        val tabs = response.contents?.singleColumnBrowseResultsRenderer?.tabs
-
-        val contents =
-            if (tabs != null && tabIndex >= 0 && tabIndex < tabs.size) {
-                tabs[tabIndex]
-                    .tabRenderer.content
-                    ?.sectionListRenderer
-                    ?.contents
-                    .orEmpty()
-            } else {
-                emptyList()
-            }
+        val responseContents = checkNotNull(response.contents) { "Library response has no contents: $browseId" }
+        val tabs = responseContents.singleColumnBrowseResultsRenderer?.tabs
+            ?: responseContents.twoColumnBrowseResultsRenderer?.tabs.orEmpty().filterNotNull()
+        val requestedSection = tabs.getOrNull(tabIndex)?.tabRenderer?.content?.sectionListRenderer
+        val fallbackTabIndex = if (tabs.size < 3) 1 else 2
+        val primarySection =
+            requestedSection
+                ?: tabs.getOrNull(fallbackTabIndex)?.tabRenderer?.content?.sectionListRenderer
+        val sections = buildList {
+            primarySection?.let(::add)
+            responseContents.sectionListRenderer?.let(::add)
+            responseContents.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer?.let(::add)
+        }
+        check(sections.isNotEmpty()) { "Library response has no library section: $browseId" }
+        val contents = sections.flatMap { it.contents.orEmpty() }
         LibraryPage(
-            items = contents.flatMap { it.libraryItems() },
-            continuation = contents.firstNotNullOfOrNull { it.libraryContinuation() },
+            items = contents.flatMap { it.libraryItems() }.distinctBy { it.id },
+            continuation = contents.firstNotNullOfOrNull { it.libraryContinuation() }
+                ?: sections.firstNotNullOfOrNull { it.continuations?.getContinuation() },
         )
     }
 
@@ -1487,29 +1491,33 @@ object YouTube {
                     .orEmpty()
                     .mapNotNull(MusicShelfRenderer.Content::musicResponsiveListItemRenderer)
                     .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
-            val items = sectionItems + gridItems + shelfItems + playlistShelfItems
+            val actionContents = response.onResponseReceivedActions.orEmpty()
+                .flatMap { it.appendContinuationItemsAction?.continuationItems.orEmpty() }
+            check(contents != null || response.onResponseReceivedActions != null) {
+                "Library continuation response has no contents"
+            }
+            val actionItems = actionContents.mapNotNull { it.musicResponsiveListItemRenderer }
+                .mapNotNull { LibraryPage.fromMusicResponsiveListItemRenderer(it) }
+            val items = sectionItems + gridItems + shelfItems + playlistShelfItems + actionItems
             LibraryContinuationPage(
                 items = items,
                 continuation =
-                    if (items.isEmpty()) {
-                        null
-                    } else {
-                        sectionContents.firstNotNullOfOrNull { it.libraryContinuation() }
-                            ?: contents?.sectionListContinuation?.continuations?.getContinuation()
-                            ?: contents?.gridContinuation?.continuations?.getContinuation()
-                            ?: contents
-                                ?.musicShelfContinuation
-                                ?.contents
-                                .orEmpty()
-                                .getContinuation()
-                            ?: contents?.musicShelfContinuation?.continuations?.getContinuation()
-                            ?: contents
-                                ?.musicPlaylistShelfContinuation
-                                ?.contents
-                                .orEmpty()
-                                .getContinuation()
-                            ?: contents?.musicPlaylistShelfContinuation?.continuations?.getContinuation()
-                    },
+                    sectionContents.firstNotNullOfOrNull { it.libraryContinuation() }
+                        ?: contents?.sectionListContinuation?.continuations?.getContinuation()
+                        ?: contents?.gridContinuation?.continuations?.getContinuation()
+                        ?: contents
+                            ?.musicShelfContinuation
+                            ?.contents
+                            .orEmpty()
+                            .getContinuation()
+                        ?: contents?.musicShelfContinuation?.continuations?.getContinuation()
+                        ?: contents
+                            ?.musicPlaylistShelfContinuation
+                            ?.contents
+                            .orEmpty()
+                            .getContinuation()
+                        ?: contents?.musicPlaylistShelfContinuation?.continuations?.getContinuation()
+                        ?: actionContents.getContinuation(),
             )
         }
 
