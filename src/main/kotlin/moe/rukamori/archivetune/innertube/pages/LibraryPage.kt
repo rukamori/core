@@ -37,11 +37,13 @@ data class LibraryPage(
                             ?: renderer.menu
                                 ?.menuRenderer
                                 ?.items
-                                ?.firstOrNull()
-                                ?.menuNavigationItemRenderer
-                                ?.navigationEndpoint
-                                ?.watchPlaylistEndpoint
-                                ?.playlistId
+                                .orEmpty()
+                                .firstNotNullOfOrNull { item ->
+                                    item.menuNavigationItemRenderer
+                                        ?.navigationEndpoint
+                                        ?.watchPlaylistEndpoint
+                                        ?.playlistId
+                                }
                             ?: browseId.removePrefix("MPREb_").let { "OLAK5uy_$it" }
 
                     AlbumItem(
@@ -69,7 +71,7 @@ data class LibraryPage(
                 }
 
                 renderer.isPlaylist -> {
-                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail()
                     PlaylistItem(
                         id =
                             renderer.navigationEndpoint.browseEndpoint
@@ -85,9 +87,9 @@ data class LibraryPage(
                                 ?.runs
                                 ?.lastOrNull()
                                 ?.text,
-                        thumbnail = thumbnail.normalizedUrl,
-                        thumbnailWidth = thumbnail.width,
-                        thumbnailHeight = thumbnail.height,
+                        thumbnail = thumbnail?.normalizedUrl,
+                        thumbnailWidth = thumbnail?.width,
+                        thumbnailHeight = thumbnail?.height,
                         playEndpoint =
                             renderer.thumbnailOverlay
                                 ?.musicItemThumbnailOverlayRenderer
@@ -121,16 +123,16 @@ data class LibraryPage(
                 }
 
                 renderer.isArtist -> {
-                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail()
                     ArtistItem(
                         id = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null,
                         title =
                             renderer.title.runs
                                 ?.lastOrNull()
                                 ?.text ?: return null,
-                        thumbnail = thumbnail.normalizedUrl,
-                        thumbnailWidth = thumbnail.width,
-                        thumbnailHeight = thumbnail.height,
+                        thumbnail = thumbnail?.normalizedUrl,
+                        thumbnailWidth = thumbnail?.width,
+                        thumbnailHeight = thumbnail?.height,
                         shuffleEndpoint =
                             renderer.menu
                                 ?.menuRenderer
@@ -139,14 +141,14 @@ data class LibraryPage(
                                     it.menuNavigationItemRenderer?.icon?.iconType == "MUSIC_SHUFFLE"
                                 }?.menuNavigationItemRenderer
                                 ?.navigationEndpoint
-                                ?.watchPlaylistEndpoint ?: return null,
+                                ?.watchPlaylistEndpoint,
                         radioEndpoint =
-                            renderer.menu.menuRenderer.items
-                                .find {
+                            renderer.menu?.menuRenderer?.items
+                                ?.find {
                                     it.menuNavigationItemRenderer?.icon?.iconType == "MIX"
                                 }?.menuNavigationItemRenderer
                                 ?.navigationEndpoint
-                                ?.watchPlaylistEndpoint ?: return null,
+                                ?.watchPlaylistEndpoint,
                     )
                 }
 
@@ -163,7 +165,7 @@ data class LibraryPage(
                 }
 
                 renderer.isArtist -> {
-                    val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail() ?: return null
+                    val thumbnail = renderer.thumbnail?.musicThumbnailRenderer?.getBestThumbnail()
                     ArtistItem(
                         id = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
                         title =
@@ -175,9 +177,9 @@ data class LibraryPage(
                                 ?.firstOrNull()
                                 ?.text
                                 ?: return null,
-                        thumbnail = thumbnail.normalizedUrl,
-                        thumbnailWidth = thumbnail.width,
-                        thumbnailHeight = thumbnail.height,
+                        thumbnail = thumbnail?.normalizedUrl,
+                        thumbnailWidth = thumbnail?.width,
+                        thumbnailHeight = thumbnail?.height,
                         shuffleEndpoint =
                             renderer.menu
                                 ?.menuRenderer
@@ -197,6 +199,19 @@ data class LibraryPage(
                     )
                 }
 
+                renderer.isAlbum || renderer.isPlaylist -> {
+                    val item = SearchPage.toYTItem(renderer)
+                    if (item is PlaylistItem) {
+                        item.copy(
+                            isEditable = renderer.menu?.menuRenderer?.items.orEmpty().any {
+                                it.menuNavigationItemRenderer?.icon?.iconType == "EDIT"
+                            },
+                        )
+                    } else {
+                        item
+                    }
+                }
+
                 else -> {
                     null
                 }
@@ -211,7 +226,7 @@ data class LibraryPage(
                     if (run.navigationEndpoint != null) {
                         artists.add(
                             Artist(
-                                id = run.navigationEndpoint.browseEndpoint?.browseId!!,
+                                id = run.navigationEndpoint.browseEndpoint?.browseId,
                                 name = run.text,
                             ),
                         )
