@@ -130,13 +130,24 @@ object SearchPage {
 
             renderer.isAlbum -> {
                 val itemThumbnail = thumbnail ?: return null
+                val browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null
                 AlbumItem(
-                    browseId = renderer.navigationEndpoint?.browseEndpoint?.browseId ?: return null,
+                    browseId = browseId,
                     playlistId =
                         renderer
                             .watchEndpoint()
                             ?.playlistId
-                            ?: return null,
+                            ?: renderer.menu
+                                ?.menuRenderer
+                                ?.items
+                                .orEmpty()
+                                .firstNotNullOfOrNull { item ->
+                                    item.menuNavigationItemRenderer
+                                        ?.navigationEndpoint
+                                        ?.watchPlaylistEndpoint
+                                        ?.playlistId
+                                }
+                            ?: browseId.removePrefix("MPREb_").let { "OLAK5uy_$it" },
                     title = title,
                     artists = metadata.getOrNull(0)?.toArtists()?.takeIf { it.isNotEmpty() },
                     year = metadata.year(),
