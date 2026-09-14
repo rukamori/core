@@ -23,6 +23,7 @@ import moe.rukamori.archivetune.innertube.models.PODCAST_SHOW_BROWSE_PREFIX
 import moe.rukamori.archivetune.innertube.models.PodcastItem
 import moe.rukamori.archivetune.innertube.models.SectionListRenderer
 import moe.rukamori.archivetune.innertube.models.SongItem
+import moe.rukamori.archivetune.innertube.models.WatchEndpoint
 import moe.rukamori.archivetune.innertube.models.YTItem
 import moe.rukamori.archivetune.innertube.models.filterExplicit
 import moe.rukamori.archivetune.innertube.models.oddElements
@@ -61,9 +62,36 @@ data class HomePage(
         val endpoint: BrowseEndpoint?,
         val items: List<YTItem>,
         val numItemsPerColumn: Int? = null,
+        val playEndpoint: WatchEndpoint? = null,
+        val featuredCards: List<FeaturedCard> = emptyList(),
     ) {
+        data class FeaturedCard(
+            val id: String,
+            val title: String,
+            val subtitle: String?,
+            val thumbnail: String?,
+            val endpoint: BrowseEndpoint?,
+            val playEndpoint: WatchEndpoint?,
+            val shuffleEndpoint: WatchEndpoint?,
+            val radioEndpoint: WatchEndpoint?,
+            val itemIds: List<String>,
+        )
+
         companion object {
             fun fromMusicCarouselShelfRenderer(renderer: MusicCarouselShelfRenderer): Section? {
+                val featuredCards =
+                    renderer.contents.mapNotNull { content ->
+                        content.musicCardShelfRenderer?.toFeaturedCard()
+                    }.distinctBy { featuredCard -> featuredCard.card.id }
+                val items =
+                    renderer.contents
+                        .mapNotNull { content ->
+                            content.musicTwoRowItemRenderer?.let { fromMusicTwoRowItemRenderer(it) }
+                                ?: content.musicResponsiveListItemRenderer?.let { SearchPage.toYTItem(it) }
+                                ?: content.musicMultiRowListItemRenderer?.let { fromMusicMultiRowListItemRenderer(it) }
+                        } + featuredCards.flatMap { card -> card.items }
+                if (items.isEmpty()) return null
+
                 return Section(
                     title =
                         renderer.header
@@ -86,16 +114,16 @@ data class HomePage(
                             ?.buttonRenderer
                             ?.navigationEndpoint
                             ?.browseEndpoint,
-                    items =
-                        renderer.contents
-                            .mapNotNull { content ->
-                                content.musicTwoRowItemRenderer?.let { fromMusicTwoRowItemRenderer(it) }
-                                    ?: content.musicResponsiveListItemRenderer?.let { SearchPage.toYTItem(it) }
-                                    ?: content.musicMultiRowListItemRenderer?.let { fromMusicMultiRowListItemRenderer(it) }
-                            }.ifEmpty {
-                                return null
-                            },
+                    items = items,
                     numItemsPerColumn = renderer.numItemsPerColumn,
+                    playEndpoint =
+                        renderer.header.musicCarouselShelfBasicHeaderRenderer.moreContentButton
+                            ?.buttonRenderer
+                            ?.let { button ->
+                                button.command?.anyWatchEndpoint ?: button.navigationEndpoint?.anyWatchEndpoint
+                            }
+                            ?.takeIf { endpoint -> !endpoint.playlistId.isNullOrBlank() },
+                    featuredCards = featuredCards.map { featuredCard -> featuredCard.card },
                 )
             }
 
@@ -118,15 +146,18 @@ data class HomePage(
                             ?.navigationEndpoint
                             ?.browseEndpoint,
                     items = items,
+                    playEndpoint =
+                        renderer.moreContentButton
+                            ?.buttonRenderer
+                            ?.let { button ->
+                                button.command?.anyWatchEndpoint ?: button.navigationEndpoint?.anyWatchEndpoint
+                            }
+                            ?.takeIf { endpoint -> !endpoint.playlistId.isNullOrBlank() },
                 )
             }
 
             fun fromMusicCardShelfRenderer(renderer: MusicCardShelfRenderer): Section? {
-                val items =
-                    renderer.contents.orEmpty().mapNotNull { content ->
-                        content.musicResponsiveListItemRenderer?.let { SearchPage.toYTItem(it) }
-                    }
-                if (items.isEmpty()) return null
+                val featuredCard = renderer.toFeaturedCard() ?: return null
 
                 val title =
                     renderer.header
@@ -142,9 +173,57 @@ data class HomePage(
 
                 return Section(
                     title = title,
-                    label = renderer.subtitle.runs?.joinToString(separator = "") { it.text }?.takeIf(String::isNotBlank),
-                    thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getThumbnailUrl(),
-                    endpoint = renderer.onTap.browseEndpoint,
+                    label = null,
+                    thumbnail = null,
+                    endpoint = null,
+                    items = featuredCard.items,
+                    featuredCards = listOf(featuredCard.card),
+                )
+            }
+
+            private fun MusicCardShelfRenderer.toFeaturedCard(): ParsedFeaturedCard? {
+                val items =
+                    contents.orEmpty().mapNotNull { content ->
+                        content.musicResponsiveListItemRenderer
+                            ?.let { SearchPage.toYTItem(it) }
+                            ?.let { it as? SongItem }
+                    }
+                if (items.isEmpty()) return null
+
+                val title =
+                    title.runs
+                        ?.joinToString(separator = "") { it.text }
+                        ?.takeIf(String::isNotBlank)
+                        ?: return null
+                val endpoint =
+                    onTap.browseEndpoint
+                        ?.takeIf { browseEndpoint ->
+                            browseEndpoint.isPlaylistEndpoint || browseEndpoint.browseId.startsWith("VL")
+                        } ?: return null
+                val buttonEndpoints =
+                    buttons.associate { button ->
+                        button.buttonRenderer.icon?.iconType to
+                            (button.buttonRenderer.command?.anyWatchEndpoint
+                                ?: button.buttonRenderer.navigationEndpoint?.anyWatchEndpoint)
+                    }
+                val playEndpoint = buttonEndpoints["PLAY_ARROW"]
+                val shuffleEndpoint = buttonEndpoints["MUSIC_SHUFFLE"]
+                val radioEndpoint = buttonEndpoints["MIX"]
+                val id = endpoint.browseId.removePrefix("VL").takeIf(String::isNotBlank) ?: return null
+
+                return ParsedFeaturedCard(
+                    card =
+                        FeaturedCard(
+                            id = id,
+                            title = title,
+                            subtitle = subtitle.runs?.joinToString(separator = "") { it.text }?.takeIf(String::isNotBlank),
+                            thumbnail = thumbnail.musicThumbnailRenderer?.getThumbnailUrl(),
+                            endpoint = endpoint,
+                            playEndpoint = playEndpoint,
+                            shuffleEndpoint = shuffleEndpoint,
+                            radioEndpoint = radioEndpoint,
+                            itemIds = items.map(SongItem::id),
+                        ),
                     items = items,
                 )
             }
@@ -414,6 +493,11 @@ data class HomePage(
                 val normalizedText = text.trim()
                 return normalizedText.isNotBlank() && normalizedText.any(Char::isLetterOrDigit)
             }
+
+            private data class ParsedFeaturedCard(
+                val card: FeaturedCard,
+                val items: List<SongItem>,
+            )
         }
     }
 

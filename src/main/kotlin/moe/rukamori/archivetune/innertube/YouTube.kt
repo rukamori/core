@@ -1011,6 +1011,27 @@ object YouTube {
                 content.musicShelfRenderer?.let { HomePage.Section.fromMusicShelfRenderer(it) }
             }
 
+    private fun List<HomePage.Section>.mergeAdjacentFeaturedCardSections(): List<HomePage.Section> =
+        fold(mutableListOf<HomePage.Section>()) { merged, section ->
+            val previous = merged.lastOrNull()
+            if (
+                previous?.featuredCards?.isNotEmpty() == true &&
+                section.featuredCards.isNotEmpty() &&
+                previous.title == section.title
+            ) {
+                merged[merged.lastIndex] =
+                    previous.copy(
+                        items = (previous.items + section.items).distinctBy { item -> item.id },
+                        featuredCards =
+                            (previous.featuredCards + section.featuredCards)
+                                .distinctBy(HomePage.Section.FeaturedCard::id),
+                    )
+            } else {
+                merged += section
+            }
+            merged
+        }
+
     suspend fun home(
         continuation: String? = null,
         params: String? = null,
@@ -1086,6 +1107,7 @@ object YouTube {
             sectionListRenderer.contents
                 .orEmpty()
                 .mapNotNull { it.toHomeSection() }
+                .mergeAdjacentFeaturedCardSections()
         val chips =
             sectionListRenderer.header
                 ?.chipCloudRenderer
@@ -1103,6 +1125,7 @@ object YouTube {
                     ?.sectionListContinuation
                     ?.contents
                     ?.mapNotNull { it.toHomeSection() }
+                    ?.mergeAdjacentFeaturedCardSections()
                     .orEmpty()
             val nextContinuation =
                 if (sections.isEmpty()) {
