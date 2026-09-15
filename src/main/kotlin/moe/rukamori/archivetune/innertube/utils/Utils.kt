@@ -76,7 +76,7 @@ suspend fun Result<LibraryPage>.completed(): Result<LibraryPage> =
             continuation = continuationPage.continuation.normalizedContinuation()
         }
         check(continuation == null) { "Library continuation limit exceeded" }
-        LibraryPage(
+        page.copy(
             items = items.distinctBy { it.id },
             continuation = null,
         )

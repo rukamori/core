@@ -12,17 +12,41 @@ import moe.rukamori.archivetune.innertube.models.Artist
 import moe.rukamori.archivetune.innertube.models.ArtistItem
 import moe.rukamori.archivetune.innertube.models.MusicResponsiveListItemRenderer
 import moe.rukamori.archivetune.innertube.models.MusicTwoRowItemRenderer
+import moe.rukamori.archivetune.innertube.models.PODCAST_SHOW_BROWSE_PREFIX
 import moe.rukamori.archivetune.innertube.models.PlaylistItem
+import moe.rukamori.archivetune.innertube.models.PodcastItem
 import moe.rukamori.archivetune.innertube.models.Run
 import moe.rukamori.archivetune.innertube.models.YTItem
 
 data class LibraryPage(
     val items: List<YTItem>,
     val continuation: String?,
+    val title: String? = null,
 ) {
     companion object {
         fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): YTItem? {
             return when {
+                renderer.isPodcast -> {
+                    val endpoint = renderer.navigationEndpoint.browseEndpoint ?: return null
+                    val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail()
+                    val authorRun = renderer.subtitle?.runs?.firstOrNull { it.text.isNotBlank() }
+                    PodcastItem(
+                        browseId = endpoint.browseId,
+                        playlistId =
+                            renderer.watchEndpoint?.playlistId
+                                ?: endpoint.browseId.removePrefix(PODCAST_SHOW_BROWSE_PREFIX).takeIf(String::isNotBlank),
+                        title =
+                            renderer.title.runs
+                                ?.joinToString(separator = "") { it.text }
+                                ?.takeIf(String::isNotBlank)
+                                ?: return null,
+                        author = authorRun?.let { Artist(name = it.text, id = it.navigationEndpoint?.browseEndpoint?.browseId) },
+                        thumbnail = thumbnail?.normalizedUrl,
+                        thumbnailWidth = thumbnail?.width,
+                        thumbnailHeight = thumbnail?.height,
+                    )
+                }
+
                 renderer.isAlbum -> {
                     val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     val browseId = renderer.navigationEndpoint.browseEndpoint?.browseId ?: return null

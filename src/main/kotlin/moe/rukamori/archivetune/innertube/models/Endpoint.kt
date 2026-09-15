@@ -16,6 +16,7 @@ import moe.rukamori.archivetune.innertube.models.BrowseEndpoint.BrowseEndpointCo
 const val MUSIC_VIDEO_TYPE_PODCAST_EPISODE = "MUSIC_VIDEO_TYPE_PODCAST_EPISODE"
 const val PODCAST_SHOW_BROWSE_PREFIX = "MPSP"
 const val PODCAST_EPISODE_BROWSE_PREFIX = "MPED"
+const val PODCAST_LIBRARY_BROWSE_ID = "FEmusic_library_non_music_audio_list"
 
 @Serializable
 sealed class Endpoint
@@ -118,7 +119,7 @@ data class ShareEntityEndpoint(
 
 @Serializable
 data class DefaultServiceEndpoint(
-    var subscribeEndpoint: SubscribeEndpoint?,
+    var subscribeEndpoint: SubscribeEndpoint? = null,
 ) : Endpoint() {
     @Serializable
     data class SubscribeEndpoint(

@@ -15,14 +15,14 @@ data class Menu(
 ) {
     @Serializable
     data class MenuRenderer(
-        val items: List<Item>?,
-        val topLevelButtons: List<TopLevelButton>?,
+        val items: List<Item>? = null,
+        val topLevelButtons: List<TopLevelButton>? = null,
     ) {
         @Serializable
         data class Item(
-            val menuNavigationItemRenderer: MenuNavigationItemRenderer?,
-            val menuServiceItemRenderer: MenuServiceItemRenderer?,
-            val toggleMenuServiceItemRenderer: ToggleMenuServiceRenderer?,
+            val menuNavigationItemRenderer: MenuNavigationItemRenderer? = null,
+            val menuServiceItemRenderer: MenuServiceItemRenderer? = null,
+            val toggleMenuServiceItemRenderer: ToggleMenuServiceRenderer? = null,
         ) {
             @Serializable
             data class MenuNavigationItemRenderer(
@@ -47,7 +47,7 @@ data class Menu(
 
         @Serializable
         data class TopLevelButton(
-            val buttonRenderer: ButtonRenderer?,
+            val buttonRenderer: ButtonRenderer? = null,
         ) {
             @Serializable
             data class ButtonRenderer(

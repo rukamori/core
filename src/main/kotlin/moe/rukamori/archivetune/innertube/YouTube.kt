@@ -1477,6 +1477,13 @@ object YouTube {
             items = contents.flatMap { it.libraryItems() }.distinctBy { it.id },
             continuation = contents.firstNotNullOfOrNull { it.libraryContinuation() }
                 ?: sections.firstNotNullOfOrNull { it.continuations?.getContinuation() },
+            title =
+                response.header
+                    ?.musicHeaderRenderer
+                    ?.title
+                    ?.runs
+                    ?.joinToString(separator = "") { it.text }
+                    ?.takeIf(String::isNotBlank),
         )
     }
 

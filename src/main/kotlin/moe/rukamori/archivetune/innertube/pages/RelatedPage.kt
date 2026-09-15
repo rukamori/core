@@ -72,6 +72,10 @@ data class RelatedPage(
 
         fun fromMusicTwoRowItemRenderer(renderer: MusicTwoRowItemRenderer): YTItem? {
             return when {
+                renderer.isPodcast -> {
+                    LibraryPage.fromMusicTwoRowItemRenderer(renderer)
+                }
+
                 renderer.isAlbum -> {
                     val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getBestThumbnail() ?: return null
                     AlbumItem(

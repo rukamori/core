@@ -11,13 +11,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Runs(
-    val runs: List<Run>?,
+    val runs: List<Run>? = null,
 )
 
 @Serializable
 data class Run(
     val text: String,
-    val navigationEndpoint: NavigationEndpoint?,
+    val navigationEndpoint: NavigationEndpoint? = null,
 )
 
 fun List<Run>.splitBySeparator(): List<List<Run>> {
