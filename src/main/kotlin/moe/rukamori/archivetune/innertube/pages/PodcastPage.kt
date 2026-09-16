@@ -22,6 +22,7 @@ data class PodcastPage(
     val description: String?,
     val episodes: List<EpisodeItem>,
     val continuation: String?,
+    val isSaved: Boolean,
 ) {
     data class Continuation(
         val episodes: List<EpisodeItem>,
@@ -79,6 +80,7 @@ data class PodcastPage(
                 description = description,
                 episodes = episodes.map { episode -> episode.copy(podcast = episode.podcast ?: showArtist) },
                 continuation = shelf?.continuations?.getContinuation() ?: shelf?.contents.orEmpty().getContinuation(),
+                isSaved = header.buttons.any { button -> button.toggleButtonRenderer?.isToggled == true },
             )
         }
 
