@@ -306,14 +306,7 @@ object YouTube {
 
             contents.forEach { content ->
                 content.musicCardShelfRenderer?.let { renderer ->
-                    topItems +=
-                        listOfNotNull(SearchSummaryPage.fromMusicCardShelfRenderer(renderer))
-                            .plus(
-                                renderer.contents
-                                    ?.mapNotNull { it.musicResponsiveListItemRenderer }
-                                    ?.mapNotNull { SearchSummaryPage.fromMusicResponsiveListItemRenderer(it) }
-                                    .orEmpty(),
-                            )
+                    topItems += SearchSummaryPage.itemsFromMusicCardShelfRenderer(renderer)
                     return@forEach
                 }
 
