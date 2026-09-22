@@ -63,6 +63,34 @@ data class SearchSummaryPage(
         }
 
     companion object {
+        fun itemsFromMusicCardShelfRenderer(renderer: MusicCardShelfRenderer): List<YTItem> {
+            val artist =
+                renderer.onTap.browseEndpoint
+                    ?.takeIf { it.isArtistEndpoint }
+                    ?.let { endpoint ->
+                        renderer.title.runs
+                            ?.joinToString(separator = "") { it.text }
+                            ?.takeIf(String::isNotBlank)
+                            ?.let { Artist(name = it, id = endpoint.browseId) }
+                    }
+            return buildList {
+                fromMusicCardShelfRenderer(renderer)?.let { add(it) }
+                renderer.contents.orEmpty().forEach { content ->
+                    val item =
+                        content.musicResponsiveListItemRenderer
+                            ?.let { fromMusicResponsiveListItemRenderer(it) }
+                            ?: return@forEach
+                    add(
+                        if (item is SongItem && item.artists.isEmpty() && artist != null) {
+                            item.copy(artists = listOf(artist))
+                        } else {
+                            item
+                        },
+                    )
+                }
+            }
+        }
+
         fun fromMusicCardShelfRenderer(renderer: MusicCardShelfRenderer): YTItem? {
             val subtitle = renderer.subtitle.runs?.splitBySeparator().orEmpty()
             val thumbnail = renderer.thumbnail.musicThumbnailRenderer?.getBestThumbnail()
