@@ -299,7 +299,16 @@ private fun List<List<Run>>.viewCountText(): String? =
 private fun List<List<Run>>.viewCount(): Long? = viewCountText()?.let(::parseViewCount)
 
 private fun parseViewCount(text: String): Long? {
-    val match = ViewCountRegex.find(text) ?: return null
+    val timecodeRanges = TimecodeRegex.findAll(text).map { it.range }.toList()
+    val match =
+        ViewCountRegex
+            .findAll(text)
+            .lastOrNull { viewCountMatch ->
+                timecodeRanges.none { timecodeRange ->
+                    viewCountMatch.range.first <= timecodeRange.last &&
+                        timecodeRange.first <= viewCountMatch.range.last
+                }
+            } ?: return null
     val numberText = match.groupValues[1]
     val suffix = match.groupValues[2].uppercase()
     val value =
@@ -336,3 +345,4 @@ private fun List<List<Run>>.lastText(): String? =
         ?.takeIf { it.isNotBlank() }
 
 private val ViewCountRegex = Regex("""([\d.,]+)\s*([KMB]?)""", RegexOption.IGNORE_CASE)
+private val TimecodeRegex = Regex("""(?:\d+:)?\d{1,2}:\d{2}""")
