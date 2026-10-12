@@ -33,3 +33,9 @@ object NetworkGatekeeper : Interceptor {
         return chain.proceed(chain.request())
     }
 }
+
+object NetworkGatekeeperControl {
+    fun allowConnections() {
+        NetworkGatekeeper.setConnectionBlocked(false)
+    }
+}
