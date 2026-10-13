@@ -171,6 +171,7 @@ object SearchPage {
                     title = title,
                     author = playlistMetadata.playlistAuthor(),
                     songCountText = playlistMetadata.lastText(),
+                    viewCount = playlistMetadata.viewCount(),
                     thumbnail = thumbnail?.normalizedUrl,
                     thumbnailWidth = thumbnail?.width,
                     thumbnailHeight = thumbnail?.height,
