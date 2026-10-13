@@ -102,6 +102,7 @@ data class PlaylistItem(
     val description: String? = null,
     override val thumbnailWidth: Int? = null,
     override val thumbnailHeight: Int? = null,
+    val viewCount: Long? = null,
 ) : YTItem() {
     override val explicit: Boolean
         get() = false
