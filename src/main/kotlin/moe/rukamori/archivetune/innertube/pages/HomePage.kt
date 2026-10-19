@@ -469,13 +469,16 @@ data class HomePage(
                 )
             }
 
-            private fun List<moe.rukamori.archivetune.innertube.models.Run>.toPodcastArtist(): Artist? =
-                firstNotNullOfOrNull { run ->
+            private fun List<moe.rukamori.archivetune.innertube.models.Run>.toPodcastArtist(): Artist? {
+                val show = firstOrNull { it.navigationEndpoint?.browseEndpoint?.isPodcastShowEndpoint == true }
+                if (show != null) return Artist(name = show.text, id = show.navigationEndpoint?.browseEndpoint?.browseId)
+                return firstNotNullOfOrNull { run ->
                     run.navigationEndpoint
                         ?.browseEndpoint
                         ?.takeIf { it.isPodcastShowEndpoint || it.isArtistEndpoint || it.browseId.startsWith("UC") }
                         ?.let { Artist(name = run.text, id = it.browseId) }
                 }
+            }
 
             private fun List<moe.rukamori.archivetune.innertube.models.Run>.toPodcastAuthor(): Artist? =
                 toPodcastArtist()

@@ -261,8 +261,10 @@ private fun List<List<Run>>.durationText(): String? {
     return null
 }
 
-private fun List<List<Run>>.podcastArtist(): Artist? =
-    asSequence()
+private fun List<List<Run>>.podcastArtist(): Artist? {
+    val show = asSequence().flatten().firstOrNull { it.navigationEndpoint?.browseEndpoint?.isPodcastShowEndpoint == true }
+    if (show != null) return Artist(name = show.text, id = show.navigationEndpoint?.browseEndpoint?.browseId)
+    return asSequence()
         .flatten()
         .firstNotNullOfOrNull { run ->
             run.navigationEndpoint
@@ -270,6 +272,7 @@ private fun List<List<Run>>.podcastArtist(): Artist? =
                 ?.takeIf { it.isPodcastShowEndpoint || it.isArtistEndpoint || it.browseId.startsWith("UC") }
                 ?.let { Artist(name = run.text, id = it.browseId) }
         }
+}
 
 private fun List<List<Run>>.firstTextExcludingDuration(): String? =
     asSequence()
