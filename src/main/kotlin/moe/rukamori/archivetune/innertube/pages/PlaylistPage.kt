@@ -9,6 +9,7 @@ package moe.rukamori.archivetune.innertube.pages
 
 import moe.rukamori.archivetune.innertube.models.Album
 import moe.rukamori.archivetune.innertube.models.Artist
+import moe.rukamori.archivetune.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_LIBRARY_ARTIST
 import moe.rukamori.archivetune.innertube.models.EpisodeItem
 import moe.rukamori.archivetune.innertube.models.MusicMultiRowListItemRenderer
 import moe.rukamori.archivetune.innertube.models.MusicResponsiveListItemRenderer
@@ -16,7 +17,6 @@ import moe.rukamori.archivetune.innertube.models.PlaylistItem
 import moe.rukamori.archivetune.innertube.models.Run
 import moe.rukamori.archivetune.innertube.models.SongItem
 import moe.rukamori.archivetune.innertube.models.WatchEndpoint
-import moe.rukamori.archivetune.innertube.models.clean
 import moe.rukamori.archivetune.innertube.models.oddElements
 import moe.rukamori.archivetune.innertube.models.splitBySeparator
 import moe.rukamori.archivetune.innertube.utils.parseTime
@@ -77,10 +77,14 @@ internal fun MusicResponsiveListItemRenderer.toSongItem(albumColumnIndex: Int? =
     return SongItem(
         id = videoId,
         title = titleText ?: return null,
-        artists = artistsFromColumn(1).ifEmpty { metadataGroups.firstOrNull().toArtists() },
+        artists =
+            metadataGroups
+                .firstOrNull { it.toArtists(allowUnlinked = false).isNotEmpty() }
+                ?.toArtists()
+                ?: artistsFromColumn(1),
         album =
             albumColumnIndex?.let(::albumFromColumn)
-                ?: metadataGroups.drop(1).firstNotNullOfOrNull { it.toAlbum() },
+                ?: metadataGroups.firstNotNullOfOrNull { it.toAlbum() },
         duration = fixedDuration ?: metadataGroups.duration(),
         thumbnail = thumbnail.normalizedUrl,
         thumbnailWidth = thumbnail.width,
@@ -136,7 +140,7 @@ private fun MusicResponsiveListItemRenderer.metadataGroups(): List<List<Run>> =
                 ?.runs
                 ?.splitBySeparator()
                 .orEmpty()
-        }.clean()
+        }
 
 private fun MusicResponsiveListItemRenderer.artistsFromColumn(index: Int): List<Artist> =
     flexColumns
@@ -145,7 +149,6 @@ private fun MusicResponsiveListItemRenderer.artistsFromColumn(index: Int): List<
         ?.text
         ?.runs
         ?.splitBySeparator()
-        ?.clean()
         ?.firstOrNull()
         .toArtists()
 
@@ -157,29 +160,43 @@ private fun MusicResponsiveListItemRenderer.albumFromColumn(index: Int): Album? 
         ?.runs
         ?.toAlbum()
 
-private fun List<Run>?.toArtists(): List<Artist> =
+private fun List<Run>?.toArtists(allowUnlinked: Boolean = true): List<Artist> =
     this
         ?.oddElements()
         ?.mapNotNull { run ->
+            val endpoint = run.navigationEndpoint?.browseEndpoint
+            if (endpoint == null) {
+                if (!allowUnlinked || run.navigationEndpoint != null) return@mapNotNull null
+            } else if (
+                !endpoint.isArtistEndpoint &&
+                endpoint.browseEndpointContextSupportedConfigs?.browseEndpointContextMusicConfig?.pageType != MUSIC_PAGE_TYPE_LIBRARY_ARTIST &&
+                !endpoint.browseId.startsWith("UC") &&
+                !endpoint.isPodcastShowEndpoint
+            ) {
+                return@mapNotNull null
+            }
             run.text
                 .takeIf { it.isNotBlank() && it.parseTime() == null }
                 ?.let { name ->
                     Artist(
                         name = name,
-                        id = run.navigationEndpoint?.browseEndpoint?.browseId,
+                        id = endpoint?.browseId,
                     )
                 }
         }.orEmpty()
 
 private fun List<Run>.toAlbum(): Album? =
     firstNotNullOfOrNull { run ->
-        val browseId = run.navigationEndpoint?.browseEndpoint?.browseId ?: return@firstNotNullOfOrNull null
+        val endpoint = run.navigationEndpoint?.browseEndpoint ?: return@firstNotNullOfOrNull null
+        if (!endpoint.isAlbumEndpoint && !endpoint.browseId.startsWith("MPREb_") && !endpoint.isPodcastShowEndpoint) {
+            return@firstNotNullOfOrNull null
+        }
         run.text
             .takeIf { it.isNotBlank() && it.parseTime() == null }
             ?.let { name ->
                 Album(
                     name = name,
-                    id = browseId,
+                    id = endpoint.browseId,
                 )
             }
     }
