@@ -15,14 +15,14 @@ import moe.rukamori.archivetune.innertube.models.YouTubeDataPage
 
 @Serializable
 data class NextResponse(
-    val contents: Contents,
+    val contents: Contents = Contents(),
     val continuationContents: ContinuationContents?,
     val currentVideoEndpoint: NavigationEndpoint?,
 ) {
     @Serializable
     data class Contents(
-        val singleColumnMusicWatchNextResultsRenderer: SingleColumnMusicWatchNextResultsRenderer?,
-        val twoColumnWatchNextResults: YouTubeDataPage.Contents.TwoColumnWatchNextResults?,
+        val singleColumnMusicWatchNextResultsRenderer: SingleColumnMusicWatchNextResultsRenderer? = null,
+        val twoColumnWatchNextResults: YouTubeDataPage.Contents.TwoColumnWatchNextResults? = null,
     ) {
         @Serializable
         data class SingleColumnMusicWatchNextResultsRenderer(

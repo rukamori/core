@@ -13,6 +13,7 @@ import kotlinx.serialization.Serializable
 data class MusicQueueRenderer(
     val content: Content?,
     val header: Header?,
+    val subHeaderChipCloud: SectionListRenderer.Header? = null,
 ) {
     @Serializable
     data class Content(

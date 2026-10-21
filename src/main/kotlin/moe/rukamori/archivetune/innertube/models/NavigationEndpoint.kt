@@ -17,7 +17,16 @@ data class NavigationEndpoint(
     val searchEndpoint: SearchEndpoint? = null,
     val queueAddEndpoint: QueueAddEndpoint? = null,
     val shareEntityEndpoint: ShareEntityEndpoint? = null,
+    val queueUpdateCommand: QueueUpdateCommand? = null,
 ) {
+    @Serializable
+    data class QueueUpdateCommand(
+        val fetchContentsCommand: NavigationEndpoint? = null,
+    )
+
+    val queueWatchEndpoint: WatchEndpoint?
+        get() = queueUpdateCommand?.fetchContentsCommand?.anyWatchEndpoint ?: anyWatchEndpoint
+
     val endpoint: Endpoint?
         get() =
             watchEndpoint

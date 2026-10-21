@@ -12,6 +12,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Runs(
     val runs: List<Run>? = null,
+    val simpleText: String? = null,
 )
 
 @Serializable

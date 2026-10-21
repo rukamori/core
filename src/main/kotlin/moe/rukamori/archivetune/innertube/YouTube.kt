@@ -86,6 +86,7 @@ import moe.rukamori.archivetune.innertube.pages.MoodAndGenres
 import moe.rukamori.archivetune.innertube.pages.NewReleaseAlbumPage
 import moe.rukamori.archivetune.innertube.pages.NextPage
 import moe.rukamori.archivetune.innertube.pages.NextResult
+import moe.rukamori.archivetune.innertube.pages.QueueChip
 import moe.rukamori.archivetune.innertube.pages.PlaylistContinuationPage
 import moe.rukamori.archivetune.innertube.pages.PlaylistPage
 import moe.rukamori.archivetune.innertube.pages.PodcastPage
@@ -2235,6 +2236,25 @@ object YouTube {
                         endpoint.params,
                         continuation,
                     ).body<NextResponse>()
+            val queueRenderer = response.contents.singleColumnMusicWatchNextResultsRenderer
+                ?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.firstOrNull()
+                ?.tabRenderer?.content?.musicQueueRenderer
+            val queueChips = queueRenderer?.subHeaderChipCloud?.chipCloudRenderer?.chips
+                .orEmpty().mapIndexedNotNull { index, chip ->
+                    val renderer = chip.chipCloudChipRenderer
+                    val label = (renderer.text?.runs?.joinToString("") { it.text } ?: renderer.text?.simpleText)
+                        ?.takeIf { it.isNotBlank() } ?: return@mapIndexedNotNull null
+                    val command = (renderer.navigationEndpoint.queueWatchEndpoint ?: renderer.onDeselectedCommand?.queueWatchEndpoint)
+                        ?.takeIf { !it.videoId.isNullOrBlank() || !it.playlistId.isNullOrBlank() }
+                        ?: return@mapIndexedNotNull null
+                    QueueChip(
+                        id = "${renderer.uniqueId.orEmpty()}:$index",
+                        title = label,
+                        selected = renderer.isSelected,
+                        endpoint = command,
+                        deselectEndpoint = renderer.onDeselectedCommand?.queueWatchEndpoint,
+                    )
+                }
             val playlistPanelRenderer =
                 response.continuationContents?.playlistPanelContinuation
                     ?: response.contents.singleColumnMusicWatchNextResultsRenderer
@@ -2307,6 +2327,7 @@ object YouTube {
                                         ?.browseEndpoint,
                                 currentIndex = currentIndex,
                                 endpoint = watchPlaylistEndpoint,
+                                queueChips = result.queueChips.ifEmpty { queueChips },
                             )
                         }
                     }
@@ -2337,6 +2358,7 @@ object YouTube {
                         ?.browseEndpoint,
                 continuation = playlistPanelRenderer.continuations?.getContinuation(),
                 endpoint = endpoint,
+                queueChips = queueChips,
             )
         }
 
