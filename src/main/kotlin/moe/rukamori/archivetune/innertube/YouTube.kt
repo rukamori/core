@@ -98,6 +98,7 @@ import moe.rukamori.archivetune.innertube.pages.SearchSummary
 import moe.rukamori.archivetune.innertube.pages.SearchSummaryPage
 import okhttp3.Dns
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.dnsoverhttps.DnsOverHttps
 import java.net.Proxy
@@ -2481,6 +2482,77 @@ object YouTube {
                     ?.activeAccountHeaderRenderer
                     ?.toAccountInfo()
             accountInfo ?: throw IllegalStateException("Failed to get account info - user may not be logged in")
+        }
+
+    suspend fun accountBanner(channelHandle: String): Result<String?> =
+        runCatching {
+            val handle = channelHandle.trim().removePrefix("@")
+            require(handle.isNotBlank()) { "Missing account channel handle" }
+            val channelUrl = WEB.requestOrigin().toHttpUrl()
+                .newBuilder()
+                .addPathSegment("@$handle")
+                .build()
+                .toString()
+            val resolved = Json.parseToJsonElement(innerTube.resolveChannelUrl(channelUrl).bodyAsText())
+            val endpoint = checkNotNull(
+                resolved.jsonObjectOrNull()
+                    ?.get("endpoint").jsonObjectOrNull()
+                    ?.get("browseEndpoint").jsonObjectOrNull(),
+            ) { "Channel URL did not resolve to a browse endpoint" }
+            val browseId = checkNotNull(endpoint["browseId"]?.jsonPrimitiveOrNull()?.contentOrNull) {
+                "Missing channel browse ID"
+            }
+            require(browseId.startsWith("UC")) { "Resolved endpoint is not a channel" }
+            val params = endpoint["params"]?.jsonPrimitiveOrNull()?.contentOrNull
+            val response = Json.parseToJsonElement(innerTube.channelPage(browseId, params).bodyAsText())
+            val header = checkNotNull(response.jsonObjectOrNull()?.get("header").jsonObjectOrNull()) {
+                "Missing channel header"
+            }
+            val banner = when {
+                header["pageHeaderRenderer"] != null -> {
+                    val pageHeader = checkNotNull(
+                        header["pageHeaderRenderer"].jsonObjectOrNull()
+                            ?.get("content").jsonObjectOrNull()
+                            ?.get("pageHeaderViewModel").jsonObjectOrNull(),
+                    ) { "Invalid channel page header" }
+                    val imageBanner = pageHeader["banner"] ?: return@runCatching null
+                    checkNotNull(
+                        imageBanner.jsonObjectOrNull()
+                            ?.get("imageBannerViewModel").jsonObjectOrNull()
+                            ?.get("image").jsonObjectOrNull(),
+                    ) { "Invalid channel image banner" }
+                }
+
+                header["c4TabbedHeaderRenderer"] != null -> {
+                    val channelHeader = checkNotNull(header["c4TabbedHeaderRenderer"].jsonObjectOrNull()) {
+                        "Invalid channel header"
+                    }
+                    val imageBanner = channelHeader["banner"] ?: return@runCatching null
+                    checkNotNull(imageBanner.jsonObjectOrNull()) { "Invalid channel banner" }
+                }
+
+                else -> error("Unsupported channel header")
+            }
+            val images = checkNotNull((banner["sources"] ?: banner["thumbnails"]).jsonArrayOrNull()) {
+                "Missing channel banner images"
+            }
+            if (images.isEmpty()) return@runCatching null
+            images.asSequence()
+                .mapNotNull { image ->
+                    val item = image.jsonObjectOrNull() ?: return@mapNotNull null
+                    val rawUrl = item["url"]?.jsonPrimitiveOrNull()?.contentOrNull ?: return@mapNotNull null
+                    val url = (if (rawUrl.startsWith("//")) "https:$rawUrl" else rawUrl).toHttpUrlOrNull()
+                        ?.takeIf { it.isHttps && it.username.isEmpty() && it.password.isEmpty() }
+                        ?: return@mapNotNull null
+                    val width = item["width"]?.jsonPrimitiveOrNull()?.contentOrNull?.toIntOrNull()?.toLong() ?: 0L
+                    val height = item["height"]?.jsonPrimitiveOrNull()?.contentOrNull?.toIntOrNull()?.toLong() ?: 1L
+                    url.toString() to (width.coerceAtLeast(0L) * height.coerceAtLeast(0L))
+                }
+                .maxByOrNull { (_, area) -> area }
+                ?.first
+                ?: error("No valid HTTPS channel banner image")
+        }.onFailure { error ->
+            if (error is CancellationException) throw error
         }
 
     suspend fun accountChannels(): Result<List<AccountChannel>> =

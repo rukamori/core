@@ -458,6 +458,31 @@ class InnerTube {
         }
     }
 
+    suspend fun resolveChannelUrl(url: String) =
+        withRetry {
+            val client = YouTubeClient.WEB
+            httpClient.post(client.requestApiUrl("navigation/resolve_url")) {
+                ytClient(client, includeVisitorData = false)
+                setBody(ResolveUrlBody(client.toContext(locale, null, null), url))
+            }
+        }
+
+    suspend fun channelPage(browseId: String, params: String?) =
+        withRetry {
+            val client = YouTubeClient.WEB
+            httpClient.post(client.requestApiUrl("browse")) {
+                ytClient(client, includeVisitorData = false)
+                setBody(
+                    BrowseBody(
+                        context = client.toContext(locale, null, null),
+                        browseId = browseId,
+                        params = params,
+                        continuation = null,
+                    ),
+                )
+            }
+        }
+
     suspend fun next(
         client: YouTubeClient,
         videoId: String?,
