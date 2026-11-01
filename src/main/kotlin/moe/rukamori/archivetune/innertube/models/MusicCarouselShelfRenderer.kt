@@ -15,6 +15,7 @@ data class MusicCarouselShelfRenderer(
     val contents: List<Content>,
     val itemSize: String,
     val numItemsPerColumn: Int?,
+    val continuations: List<Continuation>? = null,
 ) {
     @Serializable
     data class Header(
@@ -36,5 +37,6 @@ data class MusicCarouselShelfRenderer(
         val musicMultiRowListItemRenderer: MusicMultiRowListItemRenderer? = null,
         val musicCardShelfRenderer: MusicCardShelfRenderer? = null,
         val musicNavigationButtonRenderer: MusicNavigationButtonRenderer?, // navigation button in explore tab
+        val continuationItemRenderer: ContinuationItemRenderer? = null,
     )
 }

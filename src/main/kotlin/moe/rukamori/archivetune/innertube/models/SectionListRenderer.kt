@@ -55,6 +55,7 @@ data class SectionListRenderer(
         val musicEditablePlaylistDetailHeaderRenderer: MusicEditablePlaylistDetailHeaderRenderer? = null,
         val gridRenderer: GridRenderer? = null,
         val itemSectionRenderer: ItemSectionRenderer? = null,
+        val continuationItemRenderer: ContinuationItemRenderer? = null,
     )
 
     @Serializable

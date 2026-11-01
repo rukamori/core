@@ -1333,62 +1333,20 @@ object YouTube {
     ): Result<BrowseResult> =
         runCatching {
             val response = innerTube.browse(WEB_REMIX, browseId = browseId, params = params).body<BrowseResponse>()
-            val browseItems =
-                response.contents
-                    ?.singleColumnBrowseResultsRenderer
-                    ?.tabs
-                    ?.firstOrNull()
-                    ?.tabRenderer
-                    ?.content
-                    ?.sectionListRenderer
-                    ?.contents
-                    ?.mapNotNull { content ->
-                        when {
-                            content.gridRenderer != null -> {
-                                BrowseResult.Item(
-                                    title =
-                                        content.gridRenderer.header
-                                            ?.gridHeaderRenderer
-                                            ?.title
-                                            ?.runs
-                                            ?.firstOrNull()
-                                            ?.text,
-                                    items =
-                                        content.gridRenderer.items
-                                            .mapNotNull(GridRenderer.Item::musicTwoRowItemRenderer)
-                                            .mapNotNull(RelatedPage.Companion::fromMusicTwoRowItemRenderer),
-                                )
-                            }
-
-                            content.musicCarouselShelfRenderer != null -> {
-                                BrowseResult.Item(
-                                    title =
-                                        content.musicCarouselShelfRenderer.header
-                                            ?.musicCarouselShelfBasicHeaderRenderer
-                                            ?.title
-                                            ?.runs
-                                            ?.firstOrNull()
-                                            ?.text,
-                                    items =
-                                        content.musicCarouselShelfRenderer.contents
-                                            .mapNotNull(MusicCarouselShelfRenderer.Content::musicTwoRowItemRenderer)
-                                            .mapNotNull(RelatedPage.Companion::fromMusicTwoRowItemRenderer),
-                                )
-                            }
-
-                            else -> {
-                                null
-                            }
-                        }
-                    }.orEmpty()
+            val sectionList = response.contents?.singleColumnBrowseResultsRenderer?.tabs
+                ?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer
+                ?: response.contents?.sectionListRenderer
+                ?: response.contents?.twoColumnBrowseResultsRenderer?.tabs
+                    ?.firstOrNull()?.tabRenderer?.content?.sectionListRenderer
+            checkNotNull(sectionList) { "Browse response has no section list: $browseId" }
+            val secondarySection = response.contents?.twoColumnBrowseResultsRenderer?.secondaryContents?.sectionListRenderer
+            val browseItems = BrowseResult.sections(sectionList.contents.orEmpty() + secondarySection?.contents.orEmpty())
             BrowseResult(
-                title =
-                    response.header
-                        ?.musicHeaderRenderer
-                        ?.title
-                        ?.runs
-                        ?.firstOrNull()
-                        ?.text,
+                title = (response.header?.musicHeaderRenderer?.title
+                    ?: response.header?.musicVisualHeaderRenderer?.title
+                    ?: response.header?.musicImmersiveHeaderRenderer?.title
+                    ?: response.header?.musicDetailHeaderRenderer?.title)
+                    ?.runs?.joinToString("") { it.text },
                 thumbnail =
                     response.header
                         ?.musicImmersiveHeaderRenderer
@@ -1437,7 +1395,21 @@ object YouTube {
                             .mapNotNull { it.thumbnail }
                             .firstOrNull(),
                 items = browseItems,
+                continuation = sectionList.continuations?.getContinuation()
+                    ?: sectionList.contents?.firstNotNullOfOrNull {
+                        it.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token
+                    }
+                    ?: secondarySection?.continuations?.getContinuation()
+                    ?: secondarySection?.contents?.firstNotNullOfOrNull {
+                        it.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token
+                    },
             )
+        }
+
+    suspend fun browseContinuation(continuation: String): Result<BrowseResult> =
+        runCatching {
+            val response = innerTube.browse(WEB_REMIX, continuation = continuation).body<BrowseResponse>()
+            BrowseResult.fromContinuation(response)
         }
 
     suspend fun library(

@@ -22,6 +22,7 @@ data class MusicShelfRenderer(
         val musicResponsiveListItemRenderer: MusicResponsiveListItemRenderer? = null,
         val musicMultiRowListItemRenderer: MusicMultiRowListItemRenderer? = null,
         val continuationItemRenderer: ContinuationItemRenderer? = null,
+        val musicTwoRowItemRenderer: MusicTwoRowItemRenderer? = null,
     )
 }
 
