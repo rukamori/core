@@ -2228,33 +2228,38 @@ object YouTube {
                         deselectEndpoint = renderer.onDeselectedCommand?.queueWatchEndpoint,
                     )
                 }
+            val watchNextTabs = response.contents.singleColumnMusicWatchNextResultsRenderer
+                ?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs
+            val lyricsEndpoint = watchNextTabs?.getOrNull(1)?.tabRenderer?.endpoint?.browseEndpoint
+            val relatedEndpoint = watchNextTabs?.getOrNull(2)?.tabRenderer?.endpoint?.browseEndpoint
+            val title = queueRenderer?.header?.musicQueueHeaderRenderer?.subtitle?.runs?.firstOrNull()?.text
             val playlistPanelRenderer =
                 response.continuationContents?.playlistPanelContinuation
-                    ?: response.contents.singleColumnMusicWatchNextResultsRenderer
-                        ?.tabbedRenderer
-                        ?.watchNextTabbedResultsRenderer
-                        ?.tabs
-                        ?.get(0)
-                        ?.tabRenderer
-                        ?.content
-                        ?.musicQueueRenderer
-                        ?.content
-                        ?.playlistPanelRenderer!!
-            val title =
-                response.contents.singleColumnMusicWatchNextResultsRenderer
-                    ?.tabbedRenderer
-                    ?.watchNextTabbedResultsRenderer
-                    ?.tabs
-                    ?.get(0)
-                    ?.tabRenderer
-                    ?.content
-                    ?.musicQueueRenderer
-                    ?.header
-                    ?.musicQueueHeaderRenderer
-                    ?.subtitle
-                    ?.runs
-                    ?.firstOrNull()
-                    ?.text
+                    ?: queueRenderer?.content?.playlistPanelRenderer
+            if (playlistPanelRenderer == null) {
+                val seedVideoId = endpoint.videoId?.takeIf { it.isNotBlank() }
+                if (followAutomixPreview && continuation == null && endpoint.playlistId.isNullOrBlank() && seedVideoId != null) {
+                    return@runCatching next(
+                        endpoint = WatchEndpoint(videoId = seedVideoId, playlistId = "RDAMVM$seedVideoId"),
+                        followAutomixPreview = false,
+                    ).getOrThrow().let { result ->
+                        result.copy(
+                            lyricsEndpoint = result.lyricsEndpoint ?: lyricsEndpoint,
+                            relatedEndpoint = result.relatedEndpoint ?: relatedEndpoint,
+                            queueChips = result.queueChips.ifEmpty { queueChips },
+                        )
+                    }
+                }
+                return@runCatching NextResult(
+                    title = title,
+                    items = emptyList(),
+                    lyricsEndpoint = lyricsEndpoint,
+                    relatedEndpoint = relatedEndpoint,
+                    continuation = null,
+                    endpoint = endpoint,
+                    queueChips = queueChips,
+                )
+            }
             val items =
                 playlistPanelRenderer.contents.mapNotNull { content ->
                     content.playlistPanelVideoRenderer
@@ -2278,26 +2283,8 @@ object YouTube {
                             result.copy(
                                 title = title,
                                 items = songs + result.items,
-                                lyricsEndpoint =
-                                    response.contents.singleColumnMusicWatchNextResultsRenderer
-                                        ?.tabbedRenderer
-                                        ?.watchNextTabbedResultsRenderer
-                                        ?.tabs
-                                        ?.getOrNull(
-                                            1,
-                                        )?.tabRenderer
-                                        ?.endpoint
-                                        ?.browseEndpoint,
-                                relatedEndpoint =
-                                    response.contents.singleColumnMusicWatchNextResultsRenderer
-                                        ?.tabbedRenderer
-                                        ?.watchNextTabbedResultsRenderer
-                                        ?.tabs
-                                        ?.getOrNull(
-                                            2,
-                                        )?.tabRenderer
-                                        ?.endpoint
-                                        ?.browseEndpoint,
+                                lyricsEndpoint = lyricsEndpoint,
+                                relatedEndpoint = relatedEndpoint,
                                 currentIndex = currentIndex,
                                 endpoint = watchPlaylistEndpoint,
                                 queueChips = result.queueChips.ifEmpty { queueChips },
@@ -2309,26 +2296,8 @@ object YouTube {
                 title = title,
                 items = songs,
                 currentIndex = currentIndex,
-                lyricsEndpoint =
-                    response.contents.singleColumnMusicWatchNextResultsRenderer
-                        ?.tabbedRenderer
-                        ?.watchNextTabbedResultsRenderer
-                        ?.tabs
-                        ?.getOrNull(
-                            1,
-                        )?.tabRenderer
-                        ?.endpoint
-                        ?.browseEndpoint,
-                relatedEndpoint =
-                    response.contents.singleColumnMusicWatchNextResultsRenderer
-                        ?.tabbedRenderer
-                        ?.watchNextTabbedResultsRenderer
-                        ?.tabs
-                        ?.getOrNull(
-                            2,
-                        )?.tabRenderer
-                        ?.endpoint
-                        ?.browseEndpoint,
+                lyricsEndpoint = lyricsEndpoint,
+                relatedEndpoint = relatedEndpoint,
                 continuation = playlistPanelRenderer.continuations?.getContinuation(),
                 endpoint = endpoint,
                 queueChips = queueChips,
