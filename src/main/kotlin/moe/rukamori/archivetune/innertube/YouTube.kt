@@ -123,6 +123,7 @@ object YouTube {
             supportsCookieAuthentication = true,
         )
     private val mutableAuthState = MutableStateFlow(PlaybackAuthState.EMPTY)
+    private val authStateLock = Any()
 
     val authStateFlow: StateFlow<PlaybackAuthState> = mutableAuthState.asStateFlow()
 
@@ -136,9 +137,15 @@ object YouTube {
     var authState: PlaybackAuthState
         get() = mutableAuthState.value
         set(value) {
-            val normalized = value.normalized()
-            mutableAuthState.value = normalized
-            innerTube.applyAuthState(normalized)
+            updateAuthState { value }
+        }
+
+    fun updateAuthState(transform: (PlaybackAuthState) -> PlaybackAuthState): PlaybackAuthState =
+        synchronized(authStateLock) {
+            val updated = transform(mutableAuthState.value).normalized()
+            mutableAuthState.value = updated
+            innerTube.applyAuthState(updated)
+            updated
         }
 
     var locale: YouTubeLocale
@@ -149,42 +156,43 @@ object YouTube {
     var visitorData: String?
         get() = authState.visitorData
         set(value) {
-            authState = authState.copy(visitorData = value)
+            updateAuthState { it.copy(visitorData = value) }
         }
     var dataSyncId: String?
         get() = authState.dataSyncId
         set(value) {
-            authState = authState.copy(dataSyncId = value)
+            updateAuthState { it.copy(dataSyncId = value) }
         }
     var cookie: String?
         get() = authState.cookie
         set(value) {
-            authState = authState.copy(cookie = value)
+            updateAuthState { it.copy(cookie = value) }
         }
     var poToken: String?
         get() = authState.poToken
         set(value) {
-            authState = authState.copy(poToken = value)
+            updateAuthState { it.copy(poToken = value) }
         }
     var webClientPoTokenEnabled: Boolean
         get() = authState.webClientPoTokenEnabled
         set(value) {
-            authState = authState.copy(webClientPoTokenEnabled = value)
+            updateAuthState { it.copy(webClientPoTokenEnabled = value) }
         }
     var poTokenGvs: String?
         get() = authState.poTokenGvs ?: authState.poTokenGvsSession
         set(value) {
-            authState =
-                authState.copy(
+            updateAuthState {
+                it.copy(
                     poTokenGvs = null,
                     poTokenGvsSession = value,
                     poTokenGvsVideoId = null,
                 )
+            }
         }
     var poTokenPlayer: String?
         get() = authState.poTokenPlayer
         set(value) {
-            authState = authState.copy(poTokenPlayer = value)
+            updateAuthState { it.copy(poTokenPlayer = value) }
         }
     var proxy: Proxy?
         get() = innerTube.proxy
@@ -1287,14 +1295,22 @@ object YouTube {
             block()
         } catch (e: Throwable) {
             if (!shouldRetryPlaylistMutationWithoutDelegatedContext(initialAuthState, e)) throw e
-            val fallbackAuthState = authState.copy(dataSyncId = null)
-            authState = fallbackAuthState
+            updateAuthState { current ->
+                if (current.cookie == initialAuthState.cookie && current.dataSyncId == initialAuthState.dataSyncId) {
+                    current.copy(dataSyncId = null)
+                } else {
+                    current
+                }
+            }
             try {
                 block()
             } finally {
-                val currentAuthState = authState
-                if (currentAuthState.fingerprint == fallbackAuthState.fingerprint) {
-                    authState = currentAuthState.copy(dataSyncId = initialAuthState.dataSyncId)
+                updateAuthState { current ->
+                    if (current.cookie == initialAuthState.cookie && current.dataSyncId == null) {
+                        current.copy(dataSyncId = initialAuthState.dataSyncId)
+                    } else {
+                        current
+                    }
                 }
             }
         }
