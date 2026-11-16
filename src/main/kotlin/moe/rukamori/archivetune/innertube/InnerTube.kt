@@ -154,11 +154,15 @@ class InnerTube {
                         proxy(Proxy.NO_PROXY)
                     } else if (this@InnerTube.proxy != null && !proxyUsername.isNullOrBlank() && !proxyPassword.isNullOrBlank()) {
                         proxyAuthenticator { _, response ->
-                            val credential = okhttp3.Credentials.basic(proxyUsername!!, proxyPassword!!)
-                            response.request
-                                .newBuilder()
-                                .header("Proxy-Authorization", credential)
-                                .build()
+                            if (response.request.header("Proxy-Authorization") != null) {
+                                null
+                            } else {
+                                val credential = okhttp3.Credentials.basic(proxyUsername!!, proxyPassword!!)
+                                response.request
+                                    .newBuilder()
+                                    .header("Proxy-Authorization", credential)
+                                    .build()
+                            }
                         }
                     }
                 }
