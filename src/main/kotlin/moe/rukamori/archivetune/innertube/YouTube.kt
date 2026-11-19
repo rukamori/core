@@ -2454,6 +2454,19 @@ object YouTube {
                 }.jsonPrimitive.content
         }
 
+    suspend fun accountSessionIndex(authState: PlaybackAuthState = currentPlaybackAuthState()): Result<Int> =
+        runCatching {
+            check(authState.hasLoginCookie) { "YouTube login cookie is missing" }
+            val page = innerTube.getSignedInMusicPage(authState).bodyAsText()
+            check(SIGNED_IN_PAGE_REGEX.containsMatchIn(page)) { "YouTube Music did not accept the login cookie" }
+            SESSION_INDEX_REGEX
+                .find(page)
+                ?.groupValues
+                ?.get(1)
+                ?.toIntOrNull()
+                ?: throw IllegalStateException("YouTube Music session index is missing")
+        }
+
     suspend fun accountInfo(): Result<AccountInfo> =
         runCatching {
             val response = innerTube.accountMenu(WEB_REMIX).body<AccountMenuResponse>()
@@ -2548,7 +2561,7 @@ object YouTube {
                 )
 
             response
-                .objectsNamed("accountItemRenderer")
+                .objectsNamed(ACCOUNT_ITEM_KEYS)
                 .mapNotNull(::parseAccountChannel)
                 .sortedByDescending(AccountChannel::isSelected)
                 .distinctBy(AccountChannel::dataSyncId)
@@ -2564,14 +2577,14 @@ object YouTube {
 
             response.findMainAppWebDataSyncId()
                 ?: response
-                    .objectsNamed("accountItemRenderer")
+                    .objectsNamed(ACCOUNT_ITEM_KEYS)
                     .mapNotNull { renderer ->
                         val isDisabled = renderer.booleanValue("isDisabled") ?: false
                         val hasChannel = renderer.booleanValue("hasChannel") ?: true
                         if (isDisabled || !hasChannel) return@mapNotNull null
 
                         renderer["serviceEndpoint"]
-                            ?.findStringValue(setOf("datasyncId", "dataSyncId"))
+                            ?.findStringValue(DATA_SYNC_ID_KEYS)
                             ?.normalizeAccountChannelDataSyncId()
                             ?.let { dataSyncId ->
                                 dataSyncId to (renderer.booleanValue("isSelected") ?: false)
@@ -2615,21 +2628,21 @@ object YouTube {
             ?.jsonObjectOrNull()
             ?.get("mainAppWebResponseContext")
             ?.jsonObjectOrNull()
-            ?.get("dataSyncId")
+            ?.let { context -> context["datasyncId"] ?: context["dataSyncId"] }
             ?.jsonPrimitiveOrNull()
             ?.contentOrNull
             ?.normalizeAccountChannelDataSyncId()
 
-    private fun JsonElement.objectsNamed(name: String): Sequence<JsonObject> =
+    private fun JsonElement.objectsNamed(names: Set<String>): Sequence<JsonObject> =
         sequence {
             when (val element = this@objectsNamed) {
                 is JsonObject -> {
-                    element[name]?.jsonObjectOrNull()?.let { yield(it) }
-                    element.values.forEach { yieldAll(it.objectsNamed(name)) }
+                    names.forEach { name -> element[name]?.jsonObjectOrNull()?.let { yield(it) } }
+                    element.values.forEach { yieldAll(it.objectsNamed(names)) }
                 }
 
                 is kotlinx.serialization.json.JsonArray -> {
-                    element.forEach { yieldAll(it.objectsNamed(name)) }
+                    element.forEach { yieldAll(it.objectsNamed(names)) }
                 }
 
                 else -> {}
@@ -2671,12 +2684,6 @@ object YouTube {
     }
 
     private fun JsonElement.findDelegationValue(): String? {
-        val dataSyncKeys =
-            setOf(
-                "datasyncId",
-                "dataSyncId",
-                "datasyncIdToken",
-            )
         val directKeys =
             setOf(
                 "onBehalfOfUser",
@@ -2690,7 +2697,7 @@ object YouTube {
                 "selectedSerializedDelegationContext",
                 "serializedDelegationContext",
             )
-        return findStringValue(dataSyncKeys) ?: findStringValue(directKeys) ?: findStringValue(fallbackKeys)
+        return findStringValue(DATA_SYNC_ID_KEYS) ?: findStringValue(directKeys) ?: findStringValue(fallbackKeys)
     }
 
     private fun JsonElement.findStringValue(keys: Set<String>): String? =
@@ -2763,6 +2770,10 @@ object YouTube {
     private const val DEFAULT_PLAYLIST_EDIT_BATCH_SIZE = 50
 
     private val VISITOR_DATA_REGEX = Regex("^Cg[t|s]")
+    private val SIGNED_IN_PAGE_REGEX = Regex("\"LOGGED_IN\"\\s*:\\s*true")
+    private val SESSION_INDEX_REGEX = Regex("\"SESSION_INDEX\"\\s*:\\s*\"?(\\d+)")
+    private val ACCOUNT_ITEM_KEYS = setOf("accountItem", "accountItemRenderer")
+    private val DATA_SYNC_ID_KEYS = setOf("datasyncId", "dataSyncId", "datasyncIdToken")
 }
 
 private fun SectionListRenderer.Content.libraryItems(): List<YTItem> =
