@@ -16,6 +16,7 @@ data class PlaybackAuthState(
     val cookie: String? = null,
     val visitorData: String? = null,
     val dataSyncId: String? = null,
+    val accountIndex: Int? = null,
     val poToken: String? = null,
     val poTokenGvs: String? = null,
     val poTokenGvsSession: String? = null,
@@ -35,6 +36,9 @@ data class PlaybackAuthState(
     val sessionId: String?
         get() = if (hasPlaybackLoginContext) dataSyncId.userSessionIdOrNull() else visitorData
 
+    val authUser: String
+        get() = (accountIndex ?: DEFAULT_ACCOUNT_INDEX).toString()
+
     val fingerprint: String
         get() =
             sha1(
@@ -42,6 +46,7 @@ data class PlaybackAuthState(
                     cookie.orEmpty(),
                     visitorData.orEmpty(),
                     dataSyncId.orEmpty(),
+                    accountIndex?.toString().orEmpty(),
                     poToken.orEmpty(),
                     poTokenGvs.orEmpty(),
                     poTokenGvsSession.orEmpty(),
@@ -61,6 +66,7 @@ data class PlaybackAuthState(
                     cookie.orEmpty(),
                     visitorData.orEmpty(),
                     dataSyncId.orEmpty(),
+                    accountIndex?.toString().orEmpty(),
                 ).joinToString(separator = "\u0000"),
             )
 
@@ -69,6 +75,7 @@ data class PlaybackAuthState(
             cookie = cookie.normalizeAuthValue(),
             visitorData = visitorData.normalizeAuthValue(),
             dataSyncId = dataSyncId.normalizeDataSyncId(),
+            accountIndex = accountIndex?.takeIf { it >= 0 },
             poToken = poToken.normalizeAuthValue(),
             poTokenGvs = poTokenGvs.normalizeAuthValue(),
             poTokenGvsSession = poTokenGvsSession.normalizeAuthValue(),
@@ -116,6 +123,8 @@ data class PlaybackAuthState(
 
     companion object {
         val EMPTY = PlaybackAuthState()
+
+        const val DEFAULT_ACCOUNT_INDEX = 0
 
         fun supportsGvsPoToken(client: YouTubeClient): Boolean {
             return supportsWebPoToken(client)
