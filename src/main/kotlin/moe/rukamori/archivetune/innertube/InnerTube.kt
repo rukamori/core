@@ -201,7 +201,7 @@ class InnerTube {
                     val currentTime = System.currentTimeMillis() / 1000
                     val sapisidHash = sha1("$currentTime $loginCookieValue $requestOrigin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_$sapisidHash")
-                    append("X-Goog-AuthUser", "0")
+                    append("X-Goog-AuthUser", authState.authUser)
                     authState.dataSyncId.delegatedSessionIdOrNull()?.let { append("X-Goog-PageId", it) }
                 }
             }
@@ -233,7 +233,7 @@ class InnerTube {
                     val currentTime = System.currentTimeMillis() / 1000
                     val sapisidHash = sha1("$currentTime $loginCookieValue $requestOrigin")
                     append("Authorization", "SAPISIDHASH ${currentTime}_$sapisidHash")
-                    append("X-Goog-AuthUser", "0")
+                    append("X-Goog-AuthUser", authState.authUser)
                     authState.dataSyncId.delegatedSessionIdOrNull()?.let { append("X-Goog-PageId", it) }
                 }
             }
@@ -580,6 +580,16 @@ class InnerTube {
     }
 
     suspend fun getSwJsData() = withRetry { httpClient.get("https://music.youtube.com/sw.js_data") }
+
+    suspend fun getSignedInMusicPage(authState: PlaybackAuthState = currentAuthState()) =
+        withRetry {
+            httpClient.get(YouTubeClient.REFERER_YOUTUBE_MUSIC) {
+                headers {
+                    authState.cookie?.let { append("cookie", it) }
+                }
+                userAgent(YouTubeClient.USER_AGENT_WEB_REMIX)
+            }
+        }
 
     suspend fun accountMenu(client: YouTubeClient) =
         withRetry {
