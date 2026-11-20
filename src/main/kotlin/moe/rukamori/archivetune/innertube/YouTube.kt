@@ -2278,9 +2278,8 @@ object YouTube {
             }
             val items =
                 playlistPanelRenderer.contents.mapNotNull { content ->
-                    content.playlistPanelVideoRenderer
-                        ?.let(NextPage::fromPlaylistPanelVideoRenderer)
-                        ?.let { it to content.playlistPanelVideoRenderer.selected }
+                    val renderer = content.primaryVideoRenderer ?: return@mapNotNull null
+                    NextPage.fromPlaylistPanelVideoRenderer(renderer)?.let { it to renderer.selected }
                 }
             val songs = items.map { it.first }
             val currentIndex = items.indexOfFirst { it.second }.takeIf { it != -1 }
@@ -2318,6 +2317,35 @@ object YouTube {
                 endpoint = endpoint,
                 queueChips = queueChips,
             )
+        }
+
+    suspend fun songCounterpart(videoId: String): Result<SongItem?> =
+        runCatching {
+            val response =
+                innerTube
+                    .next(WEB_REMIX, videoId, null, null, null, null)
+                    .body<NextResponse>()
+            response.contents.singleColumnMusicWatchNextResultsRenderer
+                ?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs?.firstOrNull()
+                ?.tabRenderer?.content?.musicQueueRenderer?.content?.playlistPanelRenderer?.contents
+                .orEmpty()
+                .firstNotNullOfOrNull { content ->
+                    val wrapper = content.playlistPanelVideoWrapperRenderer ?: return@firstNotNullOfOrNull null
+                    val renderers =
+                        listOfNotNull(wrapper.primaryRenderer?.playlistPanelVideoRenderer) +
+                            wrapper.counterpart.orEmpty().mapNotNull { it.counterpartRenderer?.playlistPanelVideoRenderer }
+                    if (renderers.none { it.videoId == videoId }) return@firstNotNullOfOrNull null
+                    renderers
+                        .asSequence()
+                        .filter { it.videoId != videoId }
+                        .mapNotNull(NextPage::fromPlaylistPanelVideoRenderer)
+                        .firstOrNull { song ->
+                            song.endpoint
+                                ?.watchEndpointMusicSupportedConfigs
+                                ?.watchEndpointMusicConfig
+                                ?.musicVideoType == MUSIC_VIDEO_TYPE_ATV
+                        }
+                }
         }
 
     suspend fun lyrics(endpoint: BrowseEndpoint): Result<String?> =

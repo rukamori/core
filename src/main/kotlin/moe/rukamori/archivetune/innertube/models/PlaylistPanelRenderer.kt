@@ -23,6 +23,26 @@ data class PlaylistPanelRenderer(
     @Serializable
     data class Content(
         val playlistPanelVideoRenderer: PlaylistPanelVideoRenderer?,
+        val playlistPanelVideoWrapperRenderer: PlaylistPanelVideoWrapperRenderer? = null,
         val automixPreviewVideoRenderer: AutomixPreviewVideoRenderer?,
+    ) {
+        val primaryVideoRenderer: PlaylistPanelVideoRenderer?
+            get() = playlistPanelVideoRenderer ?: playlistPanelVideoWrapperRenderer?.primaryRenderer?.playlistPanelVideoRenderer
+    }
+}
+
+@Serializable
+data class PlaylistPanelVideoWrapperRenderer(
+    val primaryRenderer: Renderer? = null,
+    val counterpart: List<Counterpart>? = null,
+) {
+    @Serializable
+    data class Renderer(
+        val playlistPanelVideoRenderer: PlaylistPanelVideoRenderer? = null,
+    )
+
+    @Serializable
+    data class Counterpart(
+        val counterpartRenderer: Renderer? = null,
     )
 }
