@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -33,6 +34,7 @@ import moe.rukamori.archivetune.innertube.models.AlbumItem
 import moe.rukamori.archivetune.innertube.models.Artist
 import moe.rukamori.archivetune.innertube.models.ArtistItem
 import moe.rukamori.archivetune.innertube.models.BrowseEndpoint
+import moe.rukamori.archivetune.innertube.models.BrowseEndpoint.BrowseEndpointContextSupportedConfigs.BrowseEndpointContextMusicConfig.Companion.MUSIC_PAGE_TYPE_TRACK_LYRICS
 import moe.rukamori.archivetune.innertube.models.EpisodeItem
 import moe.rukamori.archivetune.innertube.models.GridRenderer
 import moe.rukamori.archivetune.innertube.models.MediaInfo
@@ -102,6 +104,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.dnsoverhttps.DnsOverHttps
 import java.net.Proxy
+import java.util.Locale
 import kotlin.random.Random
 
 /**
@@ -113,6 +116,7 @@ object YouTube {
     private const val BROWSE_ID_NEW_RELEASE_ALBUMS = "FEmusic_new_releases_albums"
     private const val BROWSE_ID_NEW_RELEASES = "FEmusic_new_releases"
     private const val BROWSE_ID_MOODS_AND_GENRES = "FEmusic_moods_and_genres"
+    private const val LYRICS_BROWSE_ID_PREFIX = "MPLYt"
     private const val PLAYLIST_EDIT_STATUS_SUCCEEDED = "STATUS_SUCCEEDED"
     private val playlistCoverResponseJson = Json { ignoreUnknownKeys = true }
 
@@ -2246,7 +2250,15 @@ object YouTube {
                 }
             val watchNextTabs = response.contents.singleColumnMusicWatchNextResultsRenderer
                 ?.tabbedRenderer?.watchNextTabbedResultsRenderer?.tabs
-            val lyricsEndpoint = watchNextTabs?.getOrNull(1)?.tabRenderer?.endpoint?.browseEndpoint
+            val lyricsEndpoint =
+                watchNextTabs
+                    ?.mapNotNull { it.tabRenderer.endpoint?.browseEndpoint }
+                    ?.firstOrNull { browseEndpoint ->
+                        browseEndpoint.browseId.startsWith(LYRICS_BROWSE_ID_PREFIX) ||
+                            browseEndpoint.browseEndpointContextSupportedConfigs
+                                ?.browseEndpointContextMusicConfig
+                                ?.pageType == MUSIC_PAGE_TYPE_TRACK_LYRICS
+                    } ?: watchNextTabs?.getOrNull(1)?.tabRenderer?.endpoint?.browseEndpoint
             val relatedEndpoint = watchNextTabs?.getOrNull(2)?.tabRenderer?.endpoint?.browseEndpoint
             val title = queueRenderer?.header?.musicQueueHeaderRenderer?.subtitle?.runs?.firstOrNull()?.text
             val playlistPanelRenderer =
@@ -2350,6 +2362,16 @@ object YouTube {
 
     suspend fun lyrics(endpoint: BrowseEndpoint): Result<String?> =
         runCatching {
+            val androidMusicLyrics =
+                runCatching {
+                    extractAndroidMusicLyrics(
+                        innerTube.timedLyrics(endpoint.browseId, endpoint.params).body<JsonObject>(),
+                    )
+                }.onFailure { error ->
+                    if (error is CancellationException) throw error
+                }.getOrNull()
+            if (!androidMusicLyrics.isNullOrBlank()) return@runCatching androidMusicLyrics
+
             val response = innerTube.browse(WEB_REMIX, endpoint.browseId, endpoint.params).body<BrowseResponse>()
             response.contents
                 ?.sectionListRenderer
@@ -2358,8 +2380,67 @@ object YouTube {
                 ?.musicDescriptionShelfRenderer
                 ?.description
                 ?.runs
-                ?.firstOrNull()
-                ?.text
+                ?.joinToString(separator = "") { it.text }
+                ?.takeIf { it.isNotBlank() }
+        }
+
+    private data class ParsedLyricLine(
+        val text: String,
+        val startMs: Long?,
+    )
+
+    internal fun extractAndroidMusicLyrics(response: JsonObject): String? {
+        val timedLyricsArray = findTimedLyricsArray(response) ?: return null
+        val lines =
+            timedLyricsArray.mapNotNull { element ->
+                val obj = element as? JsonObject ?: return@mapNotNull null
+                val text =
+                    (obj["lyricLine"] as? JsonPrimitive)
+                        ?.contentOrNull
+                        ?.replace('\r', ' ')
+                        ?.replace('\n', ' ')
+                        ?.trim()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: return@mapNotNull null
+                val startMs =
+                    ((obj["cueRange"] as? JsonObject)?.get("startTimeMilliseconds") as? JsonPrimitive)
+                        ?.contentOrNull
+                        ?.toLongOrNull()
+                ParsedLyricLine(text = text, startMs = startMs)
+            }
+        if (lines.isEmpty()) return null
+
+        val isSynced = lines.all { it.startMs != null } && lines.any { (it.startMs ?: 0L) > 0L }
+        if (!isSynced) {
+            return lines.joinToString("\n") { it.text }
+        }
+
+        return lines.joinToString("\n") { line ->
+            val startMs = requireNotNull(line.startMs).coerceAtLeast(0L)
+            "[%02d:%02d.%03d]%s".format(
+                Locale.US,
+                startMs / 60_000L,
+                (startMs / 1_000L) % 60L,
+                startMs % 1_000L,
+                line.text,
+            )
+        }
+    }
+
+    private fun findTimedLyricsArray(element: JsonElement): JsonArray? =
+        when (element) {
+            is JsonObject -> {
+                (element["timedLyricsData"] as? JsonArray)
+                    ?: element.values.firstNotNullOfOrNull(::findTimedLyricsArray)
+            }
+
+            is JsonArray -> {
+                element.firstNotNullOfOrNull(::findTimedLyricsArray)
+            }
+
+            else -> {
+                null
+            }
         }
 
     suspend fun related(endpoint: BrowseEndpoint): Result<RelatedPage> =
