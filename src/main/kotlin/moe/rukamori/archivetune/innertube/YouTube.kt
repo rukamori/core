@@ -2264,19 +2264,13 @@ object YouTube {
             val playlistPanelRenderer =
                 response.continuationContents?.playlistPanelContinuation
                     ?: queueRenderer?.content?.playlistPanelRenderer
+            val radioSeedVideoId =
+                endpoint.videoId
+                    ?.takeIf { it.isNotBlank() }
+                    ?.takeIf { followAutomixPreview && continuation == null && endpoint.playlistId.isNullOrBlank() }
             if (playlistPanelRenderer == null) {
-                val seedVideoId = endpoint.videoId?.takeIf { it.isNotBlank() }
-                if (followAutomixPreview && continuation == null && endpoint.playlistId.isNullOrBlank() && seedVideoId != null) {
-                    return@runCatching next(
-                        endpoint = WatchEndpoint(videoId = seedVideoId, playlistId = "RDAMVM$seedVideoId"),
-                        followAutomixPreview = false,
-                    ).getOrThrow().let { result ->
-                        result.copy(
-                            lyricsEndpoint = result.lyricsEndpoint ?: lyricsEndpoint,
-                            relatedEndpoint = result.relatedEndpoint ?: relatedEndpoint,
-                            queueChips = result.queueChips.ifEmpty { queueChips },
-                        )
-                    }
+                if (radioSeedVideoId != null) {
+                    return@runCatching nextSeedRadio(radioSeedVideoId, lyricsEndpoint, relatedEndpoint, queueChips)
                 }
                 return@runCatching NextResult(
                     title = title,
@@ -2319,15 +2313,36 @@ object YouTube {
                         }
                     }
             }
+            val panelContinuation = playlistPanelRenderer.continuations?.getContinuation()
+            if (radioSeedVideoId != null && panelContinuation == null && songs.all { it.id == radioSeedVideoId }) {
+                return@runCatching nextSeedRadio(radioSeedVideoId, lyricsEndpoint, relatedEndpoint, queueChips)
+            }
             NextResult(
                 title = title,
                 items = songs,
                 currentIndex = currentIndex,
                 lyricsEndpoint = lyricsEndpoint,
                 relatedEndpoint = relatedEndpoint,
-                continuation = playlistPanelRenderer.continuations?.getContinuation(),
+                continuation = panelContinuation,
                 endpoint = endpoint,
                 queueChips = queueChips,
+            )
+        }
+
+    private suspend fun nextSeedRadio(
+        seedVideoId: String,
+        lyricsEndpoint: BrowseEndpoint?,
+        relatedEndpoint: BrowseEndpoint?,
+        queueChips: List<QueueChip>,
+    ): NextResult =
+        next(
+            endpoint = WatchEndpoint(videoId = seedVideoId, playlistId = "RDAMVM$seedVideoId"),
+            followAutomixPreview = false,
+        ).getOrThrow().let { result ->
+            result.copy(
+                lyricsEndpoint = result.lyricsEndpoint ?: lyricsEndpoint,
+                relatedEndpoint = result.relatedEndpoint ?: relatedEndpoint,
+                queueChips = result.queueChips.ifEmpty { queueChips },
             )
         }
 
